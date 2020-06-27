@@ -16,6 +16,8 @@ class _CreatePageState extends State<CreatePage> {
   TimeOfDay _time;
   String _name;
 
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   final _firstDate = DateTime.now();
   final _lastDate = DateTime.now().add(Duration(days: 365*100));
 
@@ -49,9 +51,12 @@ class _CreatePageState extends State<CreatePage> {
         autocorrect: true,
         enableSuggestions: true,
         textCapitalization: TextCapitalization.words,
+        validator: (name) => name.length >= 3 ? null : "Name too short",
+        autovalidate: true,
       ),
       //Date
       _buildDecoratedBox(
+        FormField(builder: (state) =>
           Row(
             children: <Widget>[
               IconButton(
@@ -60,7 +65,7 @@ class _CreatePageState extends State<CreatePage> {
               ),
               Expanded(
                   child: GestureDetector(
-                    child: TextFormField(
+                    child: TextField(
                       decoration: InputDecoration(
                         labelText: "Date",
                       ),
@@ -72,10 +77,13 @@ class _CreatePageState extends State<CreatePage> {
                   )
               )
             ],
-          )
+          ),
+          validator: (v) => _date != null ? null : "Date can't be empty",
+        )
       ),
       //Time
       _buildDecoratedBox(
+        FormField(builder: (state) =>
           Row(
             children: <Widget>[
               IconButton(
@@ -84,7 +92,7 @@ class _CreatePageState extends State<CreatePage> {
               ),
               Expanded(
                   child: GestureDetector(
-                    child: TextFormField(
+                    child: TextField(
                       decoration: InputDecoration(
                         labelText: "Time",
                       ),
@@ -96,7 +104,9 @@ class _CreatePageState extends State<CreatePage> {
                   )
               )
             ],
-          )
+          ),
+          validator: (v) => _time != null ? null : "Time can't be empty",
+        )
       )
     ];
 
@@ -104,7 +114,10 @@ class _CreatePageState extends State<CreatePage> {
       return ListTile(title: e);
     });
 
-    return ListView(children: tiles.toList(), padding: EdgeInsets.only(top: 15),);
+    return Form(
+      child: ListView(children: tiles.toList(), padding: EdgeInsets.only(top: 15),),
+      key: _formKey,
+    );
   }
 
   Widget _buildDecoratedBox(Widget child) {
@@ -137,12 +150,14 @@ class _CreatePageState extends State<CreatePage> {
   }
 
   void _createActivity() {
-    assert(_date != null && _time != null && _name != null);
+    if (_formKey.currentState.validate()) {
+      assert(_date != null && _time != null && _name != null);
 
-    Activity activity = Activity(_name, DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute));
-    assert(activity != null && widget._callback != null);
+      Activity activity = Activity(_name, DateTime(
+          _date.year, _date.month, _date.day, _time.hour, _time.minute));
 
-    widget._callback(activity);
-    Navigator.of(context).pop();
+      widget._callback(activity);
+      Navigator.of(context).pop();
+    }
   }
 }
