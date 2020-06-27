@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class CreatePage extends StatefulWidget {
   @override
@@ -6,6 +7,8 @@ class CreatePage extends StatefulWidget {
 }
 
 class _CreatePageState extends State<CreatePage> {
+  DateTime _dateTime = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,13 +38,28 @@ class _CreatePageState extends State<CreatePage> {
           IconButton(
             icon: Icon(Icons.calendar_today),
             onPressed: (){
-
+              showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now().add(Duration(days: 1)),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(Duration(days: 365*100)),
+              ).then((date) {
+                if (date != null) {
+                  setState(() {
+                    if (_dateTime == null) _dateTime = date;
+                    else _dateTime = DateTime.utc(date.year, date.month, date.day, _dateTime.hour, _dateTime.minute);
+                  });
+                }
+              });
             },
           ),
           Expanded(
             child: TextFormField(
-              decoration: InputDecoration(labelText: "Date",),
+              decoration: InputDecoration(
+                labelText: "Date",
+              ),
               enabled: false,
+              controller: TextEditingController(text: DateFormat("yMMMEd").format(_dateTime)),
             ),
           )
         ],
