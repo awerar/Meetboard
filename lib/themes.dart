@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 final _colors = <Color>[
   Color(0xff264653),
@@ -31,6 +32,10 @@ ColorScheme _normalColorScheme = ColorScheme(
 
 ThemeData getTheme() {
   return ThemeData(
-
+    textTheme: TextTheme(
+      headline1: GoogleFonts.aBeeZee(textStyle: TextStyle(inherit: false), fontSize: 25),
+      button: GoogleFonts.aBeeZee(textStyle: TextStyle(inherit: false), fontSize: 18),
+    ),
+    primarySwatch: Colors.teal
   );
 }

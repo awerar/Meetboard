@@ -20,7 +20,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Scheduled Activities", style: TextStyle(fontSize: 25),),
+        title: Text("Scheduled Activities", style: Theme.of(context).textTheme.headline1),
         centerTitle: true,
       ),
       body: _buildActivityList(),
