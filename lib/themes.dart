@@ -34,7 +34,9 @@ ThemeData getTheme() {
   return ThemeData(
     textTheme: TextTheme(
       headline1: GoogleFonts.aBeeZee(textStyle: TextStyle(inherit: false), fontSize: 25),
-      button: GoogleFonts.aBeeZee(textStyle: TextStyle(inherit: false), fontSize: 18),
+      button: GoogleFonts.aBeeZee(textStyle: TextStyle(inherit: false)),
+      bodyText2: GoogleFonts.aBeeZee(),
+      subtitle1: GoogleFonts.aBeeZee(),
     ),
     primarySwatch: Colors.teal
   );

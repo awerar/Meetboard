@@ -12,7 +12,7 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final activities = [
+  final _activities = [
     Activity("Meeting with the boys", DateTime.utc(2020, 6, 30, 13)),
     Activity("Hike", DateTime.utc(2020, 7, 5, 10)),
   ];
@@ -30,7 +30,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildActivityList() {
-    List<Widget> tiles = activities.map(_buildActivityTile).toList();
+    List<Widget> tiles = _activities.map(_buildActivityTile).toList();
     return ListView(children: ListTile.divideTiles(tiles: tiles, context: context).toList(), padding: EdgeInsets.fromLTRB(15, 0, 0, 0));
   }
 
@@ -54,6 +54,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _pressCreateActivity() {
-    Navigator.of(context).push(CreateTransitionTo(CreatePage()));
+    Navigator.of(context).push(CreateTransitionTo(CreatePage((activity) {
+      setState(() {
+        _activities.add(activity);
+      });
+    })));
   }
 }
