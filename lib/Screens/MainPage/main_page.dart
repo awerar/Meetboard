@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/Activity.dart';
 import 'package:intl/intl.dart';
@@ -30,11 +31,17 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildActivityList() {
     List<Widget> tiles = activities.map(_buildActivityTile).toList();
-    return ListView(children: ListTile.divideTiles(tiles: tiles, context: context).toList());
+    return ListView(children: ListTile.divideTiles(tiles: tiles, context: context).toList(), padding: EdgeInsets.fromLTRB(15, 0, 0, 0));
   }
 
   Widget _buildActivityTile(Activity activity) {
-    return ListTile(title: Text(activity.name), trailing: Text(DateFormat("MMMEd").add_jm().format(activity.time)));
+    return ListTile(title: Text(activity.name), trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(DateFormat("MMMEd").add_jm().format(activity.time)),
+        Icon(Icons.arrow_forward_ios),
+      ],
+    ));
   }
 
   Widget _buildCreateButton() {

@@ -12,32 +12,50 @@ class _CreatePageState extends State<CreatePage> {
       appBar: AppBar(
         title: Text("Create new activity", style: Theme.of(context).textTheme.headline1),
         centerTitle: true,
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: _createActivity,
+          )
+        ],
       ),
       body: _buildForm(),
-      floatingActionButton: _buildFloatingButton(),
     );
   }
 
   Widget _buildForm() {
-    return Container();
-  }
+    List<Widget> sections = [
+      TextFormField(
+        decoration: InputDecoration(
+          labelText: "Activity Name"
+        ),
+      ),
+      Row(
+        children: <Widget>[
+          IconButton(
+            icon: Icon(Icons.calendar_today),
+            onPressed: (){
 
-  Widget _buildFloatingButton() {
-    final createButton = FloatingActionButton.extended(
-      tooltip: "Create",
-      label: Text("Create"),
-      onPressed: () {
-        _createActivity();
-        Navigator.of(context).pop();
-      },
-    );
+            },
+          ),
+          Expanded(
+            child: TextFormField(
+              decoration: InputDecoration(labelText: "Date",),
+              enabled: false,
+            ),
+          )
+        ],
+      )
+    ];
 
+    var tiles = sections.map((e) {
+      return ListTile(title: e);
+    });
 
-
-    return createButton;
+    return ListView(children: ListTile.divideTiles(tiles: tiles, context: context).toList());
   }
 
   void _createActivity() {
-
+    Navigator.of(context).pop();
   }
 }
