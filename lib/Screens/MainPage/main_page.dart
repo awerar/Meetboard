@@ -1,11 +1,8 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/Activity.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Screens/CreatePage/create_page.dart';
-import 'package:meetboard/main.dart';
-import 'package:meetboard/themes.dart';
+import 'package:meetboard/navigator_utils.dart';
 
 
 class MainPage extends StatefulWidget {
@@ -50,21 +47,6 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _pressCreateActivity() {
-    Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => CreatePage(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            var begin = Offset(1, 0);
-            var end = Offset.zero;
-            var curve = Curves.easeOutQuart;
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            
-            return SlideTransition(
-              position: animation.drive(tween),
-              child: child,
-            );
-          },
-        )
-    );
+    Navigator.of(context).push(CreateTransitionTo(CreatePage()));
   }
 }
