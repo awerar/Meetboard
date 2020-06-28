@@ -11,7 +11,8 @@ class CreateActivityButton extends StatelessWidget {
         tooltip: "Create new activity",
         onPressed: () => _createActivity(context),
         icon: Icon(Icons.add),
-        label: Text("Create Activity")
+        label: Text("Create Activity"),
+      heroTag: "CreateButton",
     );
   }
 

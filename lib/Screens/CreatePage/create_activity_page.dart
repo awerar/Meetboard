@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity.dart';
 
 class CreateActivityPage extends StatefulWidget {
+  static const String routeName = "/create_activity_page";
+
   @override
   _CreateActivityPageState createState() => _CreateActivityPageState();
 }
@@ -33,7 +35,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ],
       ),
       body: GestureDetector(child: _buildForm(), onTap:() => FocusScope.of(context).requestFocus(new FocusNode()), behavior: HitTestBehavior.translucent,),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text("Create")),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text("Create",), heroTag: "CreateButton"),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 

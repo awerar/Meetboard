@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: "Meetboard",
       theme: getTheme(),
-      initialRoute: '/',
+      initialRoute: MainPage.routeName,
       routes: routes,
     );
   }
