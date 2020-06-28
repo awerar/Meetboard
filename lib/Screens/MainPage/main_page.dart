@@ -83,7 +83,6 @@ class _MainPageState extends State<MainPage> {
         await Navigator.of(context).pushNamed(
             ViewActivityPage.routeName, arguments: activity);
         setState(()=>null);
-        Firestore.instance.collection("/Activities").document(activity.code).setData(activity.fireStoreMap());
       },
     );
   }

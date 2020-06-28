@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 
@@ -10,7 +11,7 @@ class ViewActivityPage extends StatefulWidget {
 
 class _ViewActivityPageState extends State<ViewActivityPage> {
   Activity _activity;
-  bool _edit = false;
+  bool _edit = false, _changedComingStatus = false;
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +20,24 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
       assert(_activity != null);
     }
 
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(_activity.name, style: Theme.of(context).textTheme.headline1,),
-          actions: <Widget>[
-            IconButton(icon: Icon(Icons.edit), onPressed: _startEdit,)
-          ],
+    return WillPopScope(
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(_activity.name, style: Theme.of(context).textTheme.headline1,),
+            actions: <Widget>[
+              IconButton(icon: Icon(Icons.edit), onPressed: _startEdit,)
+            ],
+          ),
+          floatingActionButton: _buildFloatingButtons(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         ),
-      floatingActionButton: _buildFloatingButtons(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      onWillPop: () async {
+          if (_changedComingStatus) {
+            Firestore.instance.collection("/Activities").document(_activity.code).setData(_activity.fireStoreMap());
+          }
+          
+          return true;
+      },
     );
   }
 
@@ -36,7 +46,10 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
 
     bool coming = _activity.coming;
     Widget comingButton = FloatingActionButton.extended(
-      onPressed: () => setState(() => _activity.coming = !coming),
+      onPressed: () {
+        setState(() => _activity.coming = !coming);
+        _changedComingStatus = !_changedComingStatus;
+      },
       label: Text((coming ? "" : "Not ") + "Coming"),
       heroTag: "CreateButton",
       backgroundColor: coming ? Colors.teal : Colors.red,
