@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/Activity.dart';
@@ -12,10 +14,20 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final _activities = [
-    Activity("Meeting with the boys", DateTime.utc(2020, 6, 30, 13)),
-    Activity("Hike", DateTime.utc(2020, 7, 5, 10)),
-  ];
+  List<Activity> _activities;
+
+  @override
+  void initState() {
+    Firestore.instance.collection("Activities").getDocuments().then((query) {
+      setState(() {
+        _activities = query.documents.map((document) {
+          return Activity(document.data["Name"], document.data["Time"].toDate());
+        }).toList();
+      });
+    });
+
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +42,20 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildActivityList() {
-    List<Widget> tiles = _activities.map(_buildActivityTile).toList();
-    return ListView(children: ListTile.divideTiles(tiles: tiles, context: context).toList(), padding: EdgeInsets.fromLTRB(15, 0, 0, 0));
+    if (_activities != null && _activities.length > 0) {
+      List<Widget> tiles = _activities.map(_buildActivityTile).toList();
+      return ListView(
+          children: ListTile.divideTiles(tiles: tiles, context: context)
+              .toList(),
+          padding: EdgeInsets.fromLTRB(15, 0, 0, 0));
+    } else {
+      return Container(
+        child: Align(
+          child: Text("No activities scheduled", style: Theme.of(context).textTheme.bodyText2.apply(color: Colors.grey, fontSizeFactor: 1.2),), alignment: Alignment.topCenter,
+        ),
+        padding: EdgeInsets.only(top: 15)
+        ,);
+    }
   }
 
   Widget _buildActivityTile(Activity activity) {
