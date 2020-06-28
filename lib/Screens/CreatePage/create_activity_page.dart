@@ -33,6 +33,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ],
       ),
       body: GestureDetector(child: _buildForm(), onTap:() => FocusScope.of(context).requestFocus(new FocusNode()), behavior: HitTestBehavior.translucent,),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text("Create")),
     );
   }
 

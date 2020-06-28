@@ -30,18 +30,18 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Scheduled Activities", style: Theme.of(context).textTheme.headline1),
-        centerTitle: true,
-      ),
-      body: _buildActivityList(),
-      floatingActionButton: CreateActivityButton((activity) {
-        setState(() {
-          _activities.add(activity);
-        });
+        appBar: AppBar(
+          title: Text("Scheduled Activities", style: Theme.of(context).textTheme.headline1),
+          centerTitle: true,
+        ),
+        body: _buildActivityList(),
+        floatingActionButton: CreateActivityButton((activity) {
+          setState(() {
+            _activities.add(activity);
+          });
 
-        Firestore.instance.collection("/Activities").add(activity.fireStoreMap());
-      })
+          Firestore.instance.collection("/Activities").add(activity.fireStoreMap());
+        }),
     );
   }
 
