@@ -1,11 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/Activity.dart';
+import 'package:meetboard/Models/activity.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Screens/CreatePage/create_activity_page.dart';
-import 'package:meetboard/navigator_utils.dart';
+import 'package:meetboard/Screens/MainPage/create_activity_button.dart';
 
 
 class MainPage extends StatefulWidget {
@@ -37,7 +35,13 @@ class _MainPageState extends State<MainPage> {
         centerTitle: true,
       ),
       body: _buildActivityList(),
-      floatingActionButton: _buildCreateButton()
+      floatingActionButton: CreateActivityButton((activity) {
+        setState(() {
+          _activities.add(activity);
+        });
+
+        Firestore.instance.collection("/Activities").add(activity.fireStoreMap());
+      })
     );
   }
 
@@ -66,22 +70,5 @@ class _MainPageState extends State<MainPage> {
         Icon(Icons.arrow_forward_ios),
       ],
     ));
-  }
-
-  Widget _buildCreateButton() {
-    return FloatingActionButton.extended(
-        tooltip: "Create new activity",
-        onPressed: _pressCreateActivity,
-        icon: Icon(Icons.add),
-        label: Text("Create Activity")
-    );
-  }
-
-  void _pressCreateActivity() {
-    Navigator.of(context).push(CreateTransitionTo(CreatePage((activity) {
-      setState(() {
-        _activities.add(activity);
-      });
-    })));
   }
 }

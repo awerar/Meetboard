@@ -1,20 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/Activity.dart';
+import 'package:meetboard/Models/activity.dart';
 
-class CreatePage extends StatefulWidget {
-  CreatePage(this._callback);
-  final void Function(Activity) _callback;
-
+class CreateActivityPage extends StatefulWidget {
   @override
-  _CreatePageState createState() => _CreatePageState();
+  _CreateActivityPageState createState() => _CreateActivityPageState();
 }
 
-class _CreatePageState extends State<CreatePage> {
+class _CreateActivityPageState extends State<CreateActivityPage> {
   DateTime _date;
   TimeOfDay _time;
   String _name;
+  bool _hasTriedSubmitting = false;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -47,7 +45,6 @@ class _CreatePageState extends State<CreatePage> {
           border: OutlineInputBorder(borderSide: BorderSide(),),
         ),
         onChanged: (name) => _name = name,
-        autofocus: true,
         autocorrect: true,
         enableSuggestions: true,
         textCapitalization: TextCapitalization.words,
@@ -70,6 +67,7 @@ class _CreatePageState extends State<CreatePage> {
             ),
             controller: TextEditingController(text: _date != null ? DateFormat("yMMMEd").format(_date) : ""),
             validator: (v) => _date == null ? "Date not picked" : null,
+            autovalidate: _hasTriedSubmitting,
           ),
         ),
       ),
@@ -89,6 +87,7 @@ class _CreatePageState extends State<CreatePage> {
             ),
             controller: TextEditingController(text: _time != null ? _time.format(context) : ""),
             validator: (v) => _time == null ? "Time not set" : null,
+            autovalidate: _hasTriedSubmitting,
           ),
         ),
       )
@@ -115,7 +114,6 @@ class _CreatePageState extends State<CreatePage> {
         setState(() {
           _date = date;
         });
-        _formKey.currentState.validate();
       }
     });
   }
@@ -126,7 +124,6 @@ class _CreatePageState extends State<CreatePage> {
         setState(() {
           _time = time;
         });
-        _formKey.currentState.validate();
       }
     });
   }
@@ -138,8 +135,7 @@ class _CreatePageState extends State<CreatePage> {
       Activity activity = Activity(_name, DateTime(
           _date.year, _date.month, _date.day, _time.hour, _time.minute));
 
-      widget._callback(activity);
-      Navigator.of(context).pop();
-    }
+      Navigator.of(context).pop(activity);
+    } else _hasTriedSubmitting = true;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meetboard/Screens/MainPage/main_page.dart';
 import 'package:meetboard/themes.dart';
+import 'package:meetboard/routes.dart';
 
 void main() => runApp(MyApp());
 
@@ -9,8 +10,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Meetboard",
-      home: MainPage(),
       theme: getTheme(),
+      initialRoute: '/',
+      routes: routes,
     );
   }
 }
