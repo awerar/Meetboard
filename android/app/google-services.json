@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "441028120043",
+    "firebase_url": "https://meetboard-f6f65.firebaseio.com",
+    "project_id": "meetboard-f6f65",
+    "storage_bucket": "meetboard-f6f65.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:441028120043:android:fadad36b2e0150beee1dae",
+        "android_client_info": {
+          "package_name": "awerar.meetboard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "441028120043-111dgtra0tmo0bl8kqq5eolkep2go6mh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCw6BqgqACALOFNLu7sKc5WHTO9y11Tmdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "441028120043-111dgtra0tmo0bl8kqq5eolkep2go6mh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
