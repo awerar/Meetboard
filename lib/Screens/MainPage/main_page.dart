@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/Activity.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Screens/CreatePage/create_page.dart';
+import 'package:meetboard/Screens/CreatePage/create_activity_page.dart';
 import 'package:meetboard/navigator_utils.dart';
 
 

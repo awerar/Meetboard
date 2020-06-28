@@ -44,7 +44,7 @@ class _CreatePageState extends State<CreatePage> {
       TextFormField(
         decoration: InputDecoration(
           labelText: "Activity Name",
-          border: OutlineInputBorder(borderSide: BorderSide())
+          border: OutlineInputBorder(borderSide: BorderSide(),),
         ),
         onChanged: (name) => _name = name,
         autofocus: true,
@@ -54,59 +54,43 @@ class _CreatePageState extends State<CreatePage> {
         validator: (name) => name.length >= 3 ? null : "Name too short",
         autovalidate: true,
       ),
+
       //Date
-      _buildDecoratedBox(
-        FormField(builder: (state) =>
-          Row(
-            children: <Widget>[
-              IconButton(
-                  icon: Icon(Icons.calendar_today),
-                  onPressed: _pickDate
-              ),
-              Expanded(
-                  child: GestureDetector(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: "Date",
-                      ),
-                      enabled: false,
-                      controller: TextEditingController(text: _date != null ? DateFormat("yMMMEd").format(_date) : ""),
-                    ),
-                    onTap: _pickDate,
-                    behavior: HitTestBehavior.translucent,
-                  )
+      GestureDetector(
+        onTap: _pickDate,
+        child: AbsorbPointer(
+          child: TextFormField(
+            decoration: InputDecoration(
+              labelText: "Date",
+              border: OutlineInputBorder(borderSide: BorderSide(),),
+              prefixIcon: IconButton(
+                icon: Icon(Icons.calendar_today, color: Colors.black,),
+                onPressed: _pickDate,
               )
-            ],
+            ),
+            controller: TextEditingController(text: _date != null ? DateFormat("yMMMEd").format(_date) : ""),
+            validator: (v) => _date == null ? "Date not picked" : null,
           ),
-          validator: (v) => _date != null ? null : "Date can't be empty",
-        )
+        ),
       ),
+
       //Time
-      _buildDecoratedBox(
-        FormField(builder: (state) =>
-          Row(
-            children: <Widget>[
-              IconButton(
-                  icon: Icon(Icons.access_time),
-                  onPressed: _pickTime
-              ),
-              Expanded(
-                  child: GestureDetector(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: "Time",
-                      ),
-                      enabled: false,
-                      controller: TextEditingController(text: _time != null ? _time.format(context) : ""),
-                    ),
-                    onTap: _pickTime,
-                    behavior: HitTestBehavior.translucent,
-                  )
-              )
-            ],
+      GestureDetector(
+        onTap: _pickTime,
+        child: AbsorbPointer(
+          child: TextFormField(
+            decoration: InputDecoration(
+                labelText: "Time",
+                border: OutlineInputBorder(borderSide: BorderSide(),),
+                prefixIcon: IconButton(
+                  icon: Icon(Icons.access_time, color: Colors.black,),
+                  onPressed: _pickDate,
+                )
+            ),
+            controller: TextEditingController(text: _time != null ? _time.format(context) : ""),
+            validator: (v) => _time == null ? "Time not set" : null,
           ),
-          validator: (v) => _time != null ? null : "Time can't be empty",
-        )
+        ),
       )
     ];
 
@@ -120,10 +104,6 @@ class _CreatePageState extends State<CreatePage> {
     );
   }
 
-  Widget _buildDecoratedBox(Widget child) {
-    return DecoratedBox(decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(5)), child: child,);
-  }
-
   void _pickDate() {
     showDatePicker(
       context: context,
@@ -135,6 +115,7 @@ class _CreatePageState extends State<CreatePage> {
         setState(() {
           _date = date;
         });
+        _formKey.currentState.validate();
       }
     });
   }
@@ -145,6 +126,7 @@ class _CreatePageState extends State<CreatePage> {
         setState(() {
           _time = time;
         });
+        _formKey.currentState.validate();
       }
     });
   }
