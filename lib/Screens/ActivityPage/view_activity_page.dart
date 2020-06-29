@@ -9,9 +9,21 @@ class ViewActivityPage extends StatefulWidget {
   _ViewActivityPageState createState() => _ViewActivityPageState();
 }
 
-class _ViewActivityPageState extends State<ViewActivityPage> {
+class _ViewActivityPageState extends State<ViewActivityPage> with WidgetsBindingObserver{
   Activity _activity;
   bool _edit = false, _changedComingStatus = false;
+
+  @override
+  void initState() {
+    WidgetsBinding.instance.addObserver(this);
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +44,8 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
           floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         ),
       onWillPop: () async {
-          if (_changedComingStatus) {
-            Firestore.instance.collection("/Activities").document(_activity.code).setData(_activity.fireStoreMap());
-          }
-          
+          _trySaveComing();
+
           return true;
       },
     );
@@ -49,6 +59,9 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
       onPressed: () {
         setState(() => _activity.coming = !coming);
         _changedComingStatus = !_changedComingStatus;
+        if (_changedComingStatus) Future.delayed(Duration(seconds: 5), () {
+          if (_changedComingStatus) _trySaveComing();
+        });
       },
       label: Text((coming ? "" : "Not ") + "Coming"),
       heroTag: "CreateButton",
@@ -69,6 +82,19 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
         ),
       ],
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive) _trySaveComing();
+    super.didChangeAppLifecycleState(state);
+  }
+
+  void _trySaveComing() {
+    if (_changedComingStatus) {
+      Firestore.instance.collection("/Activities").document(_activity.code).updateData(_activity.fireStoreMap());
+      _changedComingStatus = false;
+    }
   }
 
   void _startEdit() {
