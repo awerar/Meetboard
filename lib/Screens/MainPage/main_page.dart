@@ -23,7 +23,6 @@ class _MainPageState extends State<MainPage> {
         _activities = query.documents.map((document) {
           return Activity(document.data["Name"], document.data["Time"].toDate(), code: document.documentID, coming: document.data.containsKey("Coming") ? document.data["Coming"] : true);
         }).toList();
-        _activities.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
       });
     });
 
@@ -41,6 +40,7 @@ class _MainPageState extends State<MainPage> {
         floatingActionButton: CreateActivityButton((activity) {
           setState(() {
             _activities.add(activity);
+            _sortActivities();
           });
 
           Firestore.instance.collection("/Activities").add(activity.fireStoreMap());
@@ -85,5 +85,16 @@ class _MainPageState extends State<MainPage> {
         setState(()=>null);
       },
     );
+  }
+
+  void _addActivity(Activity activity) {
+    setState(() {
+      _activities.add(activity);
+      _sortActivities();
+    });
+  }
+
+  void _sortActivities() {
+    _activities.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
   }
 }

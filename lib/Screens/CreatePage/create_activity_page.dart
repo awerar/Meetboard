@@ -15,6 +15,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
   TimeOfDay _time;
   String _name;
   bool _hasTriedSubmitting = false;
+  Activity _baseActivity;
+  String _finishedLabel;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -23,6 +25,22 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_finishedLabel == null) {
+      Object args = ModalRoute.of(context).settings.arguments;
+      assert(args != null && args is Iterable<dynamic> && args.length >= 1 && args.elementAt(0) is String);
+
+      List<dynamic> argsList = (args as Iterable<dynamic>).toList(growable: false);
+      _finishedLabel = argsList[0];
+
+      if (argsList.length >= 2 && argsList[2] is Activity) _baseActivity = argsList[1];
+      if (_baseActivity != null) {
+        _name = _baseActivity.name;
+        _date = _baseActivity.time;
+        _time = TimeOfDay.fromDateTime(_baseActivity.time);
+        _hasTriedSubmitting = true;
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Create a new activity", style: Theme.of(context).textTheme.headline1),
@@ -35,7 +53,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         ],
       ),
       body: GestureDetector(child: _buildForm(), onTap:() => FocusScope.of(context).requestFocus(new FocusNode()), behavior: HitTestBehavior.translucent,),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text("Create",), heroTag: "CreateButton"),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text(_finishedLabel,), heroTag: "CreateButton"),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
@@ -54,6 +72,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
         textCapitalization: TextCapitalization.words,
         validator: (name) => name.length >= 3 ? null : "Name too short",
         autovalidate: true,
+        controller: TextEditingController(text: _name),
       ),
 
       //Date
@@ -136,10 +155,18 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
     if (_formKey.currentState.validate()) {
       assert(_date != null && _time != null && _name != null);
 
-      Activity activity = Activity(_name, DateTime(
-          _date.year, _date.month, _date.day, _time.hour, _time.minute));
+      DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
-      Navigator.of(context).pop(activity);
+      if (_baseActivity == null) {
+        Activity activity = Activity(_name, activityTime);
+
+        Navigator.of(context).pop(activity);
+      } else {
+        _baseActivity.time = activityTime;
+        _baseActivity.name = _name;
+
+        Navigator.of(context).pop(_baseActivity);
+      }
     } else _hasTriedSubmitting = true;
   }
 }
