@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Screens/ActivityPage/view_activity_page.dart';
+import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/create_activity_button.dart';
 
 

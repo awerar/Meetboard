@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:meetboard/Components/double_floating_action_button.dart';
 import 'package:meetboard/Models/activity.dart';
 
 class ViewActivityPage extends StatefulWidget {
@@ -52,8 +53,6 @@ class _ViewActivityPageState extends State<ViewActivityPage> with WidgetsBinding
   }
 
   Widget _buildFloatingButtons(){
-    EdgeInsetsGeometry padding = EdgeInsets.symmetric(horizontal: 15, vertical: 0);
-
     bool coming = _activity.coming;
     Widget comingButton = FloatingActionButton.extended(
       onPressed: () {
@@ -70,17 +69,9 @@ class _ViewActivityPageState extends State<ViewActivityPage> with WidgetsBinding
     );
     Widget editButton = FloatingActionButton.extended(onPressed: null, label: Text("Edit"), icon: Icon(Icons.edit), );
 
-    return Stack(
-      children: <Widget>[
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: Padding(padding: padding, child: editButton),
-        ),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: Padding(padding: padding, child: comingButton),
-        ),
-      ],
+    return DoubleFloatingActionButton(
+      leftButton: editButton,
+      rightButton: comingButton,
     );
   }
 
