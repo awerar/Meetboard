@@ -40,7 +40,7 @@ class _ComingButtonState extends State<ComingButton> with WidgetsBindingObserver
 
     Duration animationDuration = Duration(milliseconds: 100);
 
-    Text comingText = Text((coming ? "" : "Not ") + "Coming", key: Key("Coming Text",), overflow: TextOverflow.fade, maxLines: 1, softWrap: false,);
+    Text comingText = Text((coming ? "" : "Not ") + "Coming", key: Key("Coming Text",), overflow: TextOverflow.fade, maxLines: 1, softWrap: false, style: TextStyle(inherit: true, color: coming ? null : Theme.of(context).colorScheme.onError),);
 
     return WillPopScope(
       child: FloatingActionButton.extended(
@@ -53,7 +53,7 @@ class _ComingButtonState extends State<ComingButton> with WidgetsBindingObserver
         },
         label: AnimatedContainer(child: comingText, duration: animationDuration, width: coming ? 60 : 90,),
         heroTag: "CreateButton",
-        backgroundColor: coming ? Colors.teal : Colors.red,
+        backgroundColor: coming ? null : Theme.of(context).errorColor,
         icon: AnimatedSwitcher(child: Icon(coming ? Icons.check : Icons.check_box_outline_blank, key: Key(coming ? "Coming Icon" : "Noy Coming Icon"),), duration: animationDuration,),
       ),
       onWillPop: () async {

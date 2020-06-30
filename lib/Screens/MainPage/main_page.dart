@@ -33,7 +33,7 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("Scheduled Activities", style: Theme.of(context).textTheme.headline1),
+          title: Text("Scheduled Activities",),
           centerTitle: true,
         ),
         body: _buildActivityList(),
@@ -51,14 +51,11 @@ class _MainPageState extends State<MainPage> {
   Widget _buildActivityList() {
     if (_activities != null && _activities.length > 0) {
       List<Widget> tiles = _activities.map(_buildActivityTile).toList();
-      return ListView(
-          children: ListTile.divideTiles(tiles: tiles, context: context)
-              .toList(),
-          padding: EdgeInsets.fromLTRB(15, 0, 0, 0));
+      return ListView(children: tiles,);
     } else {
       return Container(
         child: Align(
-          child: Text("No activities scheduled", style: Theme.of(context).textTheme.bodyText2.apply(color: Colors.grey, fontSizeFactor: 1.2),), alignment: Alignment.topCenter,
+          child: Text("No activities scheduled", style: Theme.of(context).textTheme.subtitle1.copyWith(inherit: true),), alignment: Alignment.topCenter,
         ),
         padding: EdgeInsets.only(top: 15)
         ,);
@@ -70,7 +67,7 @@ class _MainPageState extends State<MainPage> {
 
     return ListTile(
         title: Text(activity.name),
-        subtitle: !coming ? Text("Not Coming", style: TextStyle(color: Colors.red),) : null,
+        subtitle: !coming ? Text("Not Coming", style: TextStyle(inherit: true, color: Theme.of(context).colorScheme.error)) : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity.dart';
@@ -32,7 +31,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
       List<dynamic> argsList = (args as Iterable<dynamic>).toList(growable: false);
       _finishedLabel = argsList[0];
 
-      if (argsList.length >= 2 && argsList[2] is Activity) _baseActivity = argsList[1];
+      if (argsList.length >= 2 && argsList[1] is Activity) _baseActivity = argsList[1];
       if (_baseActivity != null) {
         _name = _baseActivity.name;
         _date = _baseActivity.time;
@@ -43,7 +42,7 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create a new activity", style: Theme.of(context).textTheme.headline1),
+        title: Text("Create a new activity"),
         centerTitle: true,
         actions: <Widget>[
           IconButton(
@@ -84,8 +83,9 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
               labelText: "Date",
               border: OutlineInputBorder(borderSide: BorderSide(),),
               prefixIcon: IconButton(
-                icon: Icon(Icons.calendar_today, color: Colors.black,),
+                icon: Icon(Icons.calendar_today),
                 onPressed: _pickDate,
+                color: Theme.of(context).colorScheme.onSurface,
               )
             ),
             controller: TextEditingController(text: _date != null ? DateFormat("yMMMEd").format(_date) : ""),
@@ -102,10 +102,11 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
           child: TextFormField(
             decoration: InputDecoration(
                 labelText: "Time",
-                border: OutlineInputBorder(borderSide: BorderSide(),),
+                border: OutlineInputBorder(),
                 prefixIcon: IconButton(
-                  icon: Icon(Icons.access_time, color: Colors.black,),
+                  icon: Icon(Icons.access_time, ),
                   onPressed: _pickDate,
+                  color: Theme.of(context).colorScheme.onSurface,
                 )
             ),
             controller: TextEditingController(text: _time != null ? _time.format(context) : ""),
