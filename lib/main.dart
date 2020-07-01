@@ -10,9 +10,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "Meetboard",
-      theme: getTheme(),
       initialRoute: MainPage.routeName,
       routes: routes,
+      theme: getTheme(),
     );
   }
 }
