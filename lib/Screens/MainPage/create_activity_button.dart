@@ -62,6 +62,8 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
 
   void _createActivity() async {
     Activity result = await Navigator.of(context).pushNamed("/create_activity_page", arguments: {"Create"}) as Activity;
+    widget.onCreatedActivity(result);
+
     if (result != null) {
       //onCreatedActivity(result);
       Scaffold.of(context).showSnackBar(

@@ -1,12 +1,12 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/create_activity_button.dart';
 import 'package:meetboard/themes.dart';
-import 'package:timer_builder/timer_builder.dart';
 
 
 class MainPage extends StatefulWidget {
@@ -61,7 +61,39 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildActivityList() {
     if (_activities != null && _activities.length > 0) {
-      List<Widget> tiles = _activities.map(_buildActivityTile).toList();
+      List<int> categoryDays = [
+        0, 1, 6, 30, 365, 99999999
+      ];
+
+      List<String> categoryNames = [
+        "Today", "Tomorrow", "Next Week", "Next Month", "Next Year", "In the future"
+      ];
+
+      List<Widget> tiles = List<Widget>();
+      int category = 0;
+      bool first = true;
+      for(Activity activity in _activities) {
+        DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+        int dayDiff = activity.time.difference(today).inDays;
+
+        bool newCategory = false;
+        while(dayDiff > categoryDays[category] && category < categoryDays.length) {
+          category++;
+          newCategory = true;
+        }
+
+        if (newCategory || first) {
+          if (!first) tiles.add(SizedBox(height: 15,));
+          tiles.add(Container(
+              child: Text(categoryNames[category], style: Theme.of(context).textTheme.subtitle1.copyWith(color: Colors.grey, inherit: true), textAlign: TextAlign.left),
+            padding: EdgeInsets.only(left: 20),
+          ));
+          tiles.add(Divider());
+        }
+        tiles.add(ActivityCard(activity: activity));
+        first = false;
+      }
+
       return ListView(children: tiles, padding: EdgeInsets.all(8),);
     } else {
       return Container(
@@ -73,56 +105,6 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  Widget _buildActivityTile(Activity activity) {
-    bool coming = activity.coming;
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).pushNamed(ViewActivityPage.routeName, arguments: activity);
-      },
-        child:Card(
-            child: SizedBox(
-                height: 72,
-                child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: <Widget>[
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(activity.name, style: Theme.of(context).textTheme.subtitle1.copyWith(inherit: true), ),
-                            SizedBox(height: 4,),
-                            Text(DateFormat((activity.time.year != DateTime.now().year ? "y" : "") + "MMMEd").add_jm().format(activity.time), style: Theme.of(context).textTheme.bodyText2.copyWith(color: Colors.grey, inherit: true),),
-                          ],
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            _buildTimeLeftText(activity, context),
-                            Text(!coming ? "Not Coming" : "", style: Theme.of(context).textTheme.bodyText2.copyWith(inherit: true, color: Theme.of(context).colorScheme.error),)
-                          ],
-                        )
-                      ],
-                    )
-                )
-            )
-        )
-    );
-  }
-
-  Widget _buildTimeLeftText(Activity activity, BuildContext context) {
-    return TimerBuilder.periodic(
-      Duration(seconds: 1),
-      builder: (context) {
-        Duration duration = activity.time.difference(DateTime.now());
-        return Text("${duration.inDays}d ${duration.inHours - duration.inDays * 24}h ${duration.inMinutes - duration.inHours * 60}m", style: Theme.of(context).textTheme.bodyText2.copyWith(inherit: true, color: Colors.grey),);
-      },
-    );
-  }
-
   void _addActivity(Activity activity) {
     setState(() {
       _activities.add(activity);
@@ -132,5 +114,97 @@ class _MainPageState extends State<MainPage> {
 
   void _sortActivities() {
     _activities.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
+  }
+}
+
+class ActivityCard extends StatefulWidget {
+  final Activity activity;
+  ActivityCard({@required this.activity});
+
+  @override
+  _ActivityCardState createState() => _ActivityCardState();
+}
+
+class _ActivityCardState extends State<ActivityCard> {
+  Timer _refresher;
+  Duration _timeLeft;
+
+  @override
+  void initState() {
+    _timeLeft = _getTimeLeft();
+
+    _refresher = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        _timeLeft = _getTimeLeft();
+      });
+    });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _refresher.cancel();
+    super.dispose();
+  }
+
+  Duration _getTimeLeft() {
+    return widget.activity.time.difference(DateTime.now());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ThemeData theme = Theme.of(context);
+
+    String timeLeftLabel = "";
+
+    int years = (_timeLeft.inDays ~/ 365);
+    if (_timeLeft.inDays >= 365) {
+      timeLeftLabel = "In $years ${years > 1 ? "years" : "year"} & ${_timeLeft.inDays % 365} days";
+    } else if (_timeLeft.inDays >= 2) {
+      timeLeftLabel = "In ${_timeLeft.inDays} days";
+    } else if (_timeLeft.inDays == 1) {
+      timeLeftLabel = "In one day & ${_timeLeft.inHours % 24}h";
+    } else {
+      timeLeftLabel = "In ${_timeLeft.inHours}h ${(_timeLeft.inMinutes % 60) + 1}m";
+    }
+
+    return Card(
+      clipBehavior: Clip.hardEdge,
+      child: InkWell(
+        splashColor: Theme.of(context).primaryColor.withAlpha((255 * 0.6).floor()),
+        onTap: () => null,
+        splashFactory: InkRipple.splashFactory,
+          child: IntrinsicHeight(child:  Row(
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
+              SizedBox(
+                width: 25,
+                child: Stack(
+                  children: <Widget>[
+                    Container(
+                      color: widget.activity.coming ? green : red,
+                      constraints: BoxConstraints.expand(),
+                    ),
+                    Align(child: Icon(Icons.chevron_left, color: Colors.white,), alignment: Alignment.center,)
+                  ],
+                ),
+              ),
+              Flexible(
+                  child: ListTile(
+                    title: Text(widget.activity.name, ),
+                    subtitle: Text(DateFormat(DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY).add_jm().format(widget.activity.time) + "\n$timeLeftLabel"),
+                    trailing: Text(widget.activity.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),
+                    isThreeLine: true,
+                  )
+              )
+            ],
+          )
+          )
+      ),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+      ),
+      elevation: 2,
+    );
   }
 }
