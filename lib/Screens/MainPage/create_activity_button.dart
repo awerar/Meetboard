@@ -20,6 +20,7 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
       heroTag: "CreateButton",
       overlayColor: Colors.black,
       child: Icon(_open ? Icons.close : Icons.add),
+      backgroundColor: _open ? Colors.grey : null,
       onOpen: () {
         setState(() {
           _open = true;
@@ -35,29 +36,22 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
   }
 
   List<SpeedDialChild> _buildChildren() {
-    Color backgroundColor = Theme.of(context).colorScheme.surface;
-    Color onBackground = Theme.of(context).colorScheme.onSurface;
-    TextStyle labelStyle = Theme.of(context).textTheme.bodyText1.copyWith(color: Theme.of(context).colorScheme.onSurface);
-
     return <SpeedDialChild>[
-      SpeedDialChild(
-        label: "Join Activity",
-        labelStyle: labelStyle,
-        child: Icon(Icons.person_add),
-        backgroundColor: backgroundColor,
-        foregroundColor: onBackground,
-        labelBackgroundColor: backgroundColor
-      ),
-      SpeedDialChild(
-        label: "Create Activity",
-        labelStyle: labelStyle,
-        child: Icon(Icons.create,),
-        backgroundColor: backgroundColor,
-        foregroundColor: onBackground,
-        labelBackgroundColor: backgroundColor,
-        onTap: _createActivity
-      ),
+      _createChild("Join Activity", Icon(Icons.person_add,), null),
+      _createChild("Create Activity", Icon(Icons.create,), _createActivity)
     ];
+  }
+
+  SpeedDialChild _createChild(String label, Icon icon, void Function() onTap) {
+    return SpeedDialChild(
+        label: label,
+        labelStyle: Theme.of(context).textTheme.bodyText1.copyWith(color: Theme.of(context).colorScheme.onSurface),
+        child: icon,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Theme.of(context).colorScheme.onSecondary,
+        labelBackgroundColor: Theme.of(context).colorScheme.surface,
+        onTap: onTap
+    );
   }
 
   void _createActivity() async {

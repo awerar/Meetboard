@@ -172,7 +172,7 @@ class _ActivityCardState extends State<ActivityCard> {
       clipBehavior: Clip.hardEdge,
       child: InkWell(
         splashColor: Theme.of(context).primaryColor.withAlpha((255 * 0.6).floor()),
-        onTap: () => null,
+        onTap: () => Navigator.of(context).pushNamed(ViewActivityPage.routeName, arguments: widget.activity),
         splashFactory: InkRipple.splashFactory,
           child: IntrinsicHeight(child:  Row(
             mainAxisSize: MainAxisSize.max,
