@@ -9,7 +9,7 @@ void main() => runApp(MyApp());
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    timeDilation = 10;
+    timeDilation = 100;
 
     return MaterialApp(
       title: "Meetboard",
