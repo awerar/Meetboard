@@ -163,10 +163,8 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
         Navigator.of(context).pop(activity);
       } else {
-        _baseActivity.time = activityTime;
-        _baseActivity.name = _name;
-
-        Navigator.of(context).pop(_baseActivity);
+        Activity newActivity = _baseActivity.copyWith(name: _name, time: activityTime);
+        Navigator.of(context).pop(newActivity);
       }
     } else _hasTriedSubmitting = true;
   }

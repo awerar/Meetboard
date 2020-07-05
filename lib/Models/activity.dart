@@ -1,17 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Activity {
-  String name, code;
-  DateTime time;
-  bool coming;
+  final String name, id;
+  final DateTime time;
+  final bool coming;
 
-  Activity(this.name, this.time, {this.coming = true, this.code = ""});
+  Activity(this.name, this.time, {this.coming = true, this.id = ""});
 
-  Map<String, dynamic> fireStoreMap() {
+  Activity copyWith({String name, DateTime time, String id, bool coming}) {
+    return Activity(name == null ? this.name : name, time == null ? this.time : time, coming: coming == null ? this.coming : coming, id: id == null ? this.id : id);
+  }
+
+  static Activity fromDocument(DocumentSnapshot document) {
+    return Activity(document.data["Name"], document.data["Time"].toDate(), coming: document["Coming"], id: document.reference.documentID);
+  }
+
+  Map<String, dynamic> encode() {
     return {
-      "Name": name,
       "Time": Timestamp.fromDate(time),
-      "Coming": coming
+      "Coming": coming,
+      "Name": name
     };
   }
 }

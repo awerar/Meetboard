@@ -58,6 +58,7 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
     Activity result = await Navigator.of(context).pushNamed("/create_activity_page", arguments: {"Create"}) as Activity;
     widget.onCreatedActivity(result);
 
+    //TODO: FIX
     if (result != null) {
       //onCreatedActivity(result);
       Scaffold.of(context).showSnackBar(
@@ -66,7 +67,7 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
             behavior: SnackBarBehavior.fixed,
             action: SnackBarAction(
               label: "View",
-              onPressed: () => Navigator.of(context).pushNamed(ViewActivityPage.routeName, arguments: result),
+              onPressed: () => Navigator.of(context).pushNamed(ViewActivityPage.routeName, arguments: result.id),
             ),
           )
       );

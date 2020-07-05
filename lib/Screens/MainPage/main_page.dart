@@ -1,44 +1,16 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:intl/intl.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/create_activity_button.dart';
 import 'package:meetboard/themes.dart';
+import 'package:provider/provider.dart';
 
-
-class MainPage extends StatefulWidget {
-  static const String routeName = "/";
-  
-  @override
-  _MainPageState createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  List<Activity> _activities;
-
-  @override
-  void initState() {
-    Firestore.instance.collection("Activities").getDocuments().then((query) {
-      for(DocumentSnapshot d in query.documents.toList()) {
-        if ((d.data["Time"].toDate() as DateTime).millisecondsSinceEpoch < DateTime.now().millisecondsSinceEpoch) {
-          //TODO remove from Firestore
-          query.documents.remove(d);
-        }
-      }
-
-      setState(() {
-        _activities = query.documents.map((document) {
-          return Activity(document.data["Name"], document.data["Time"].toDate(), code: document.documentID, coming: document.data.containsKey("Coming") ? document.data["Coming"] : true);
-        }).toList();
-        _sortActivities();
-      });
-    });
-
-    super.initState();
-  }
+class MainPage extends StatelessWidget {
+  static String routeName = "/";
 
   @override
   Widget build(BuildContext context) {
@@ -47,20 +19,17 @@ class _MainPageState extends State<MainPage> {
         title: Text("Planned Activities",),
         centerTitle: true,
       ),
-      body: _buildActivityList(),
+      body: Consumer<ActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
       floatingActionButton: CreateActivityButton((activity) {
-        setState(() {
-          _activities.add(activity);
-          _sortActivities();
-        });
-
-        Firestore.instance.collection("/Activities").add(activity.fireStoreMap());
+        Provider.of<ActivityListModel>(context, listen: false).addActivity(activity);
       }),
     );
   }
 
-  Widget _buildActivityList() {
-    if (_activities != null && _activities.length > 0) {
+  Widget _buildActivityList(ActivityListModel activityListModel, BuildContext context) {
+    List<Activity> activities = activityListModel.activities;
+
+    if (!activityListModel.isLoading && activities.length > 0) {
       List<int> categoryDays = [
         0, 1, 6, 30, 365, 99999999
       ];
@@ -72,7 +41,7 @@ class _MainPageState extends State<MainPage> {
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(Activity activity in _activities) {
+      for(Activity activity in activities) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
         int dayDiff = activity.time.difference(today).inDays;
 
@@ -85,7 +54,7 @@ class _MainPageState extends State<MainPage> {
         if (newCategory || first) {
           if (!first) tiles.add(SizedBox(height: 15,));
           tiles.add(Container(
-              child: Text(categoryNames[category], style: Theme.of(context).textTheme.subtitle1.copyWith(color: Colors.grey, inherit: true), textAlign: TextAlign.left),
+            child: Text(categoryNames[category], style: Theme.of(context).textTheme.subtitle1.copyWith(color: Colors.grey, inherit: true), textAlign: TextAlign.left),
             padding: EdgeInsets.only(left: 20),
           ));
           tiles.add(Divider());
@@ -100,22 +69,12 @@ class _MainPageState extends State<MainPage> {
         child: Align(
           child: Text("No activities scheduled", style: Theme.of(context).textTheme.subtitle1.copyWith(inherit: true),), alignment: Alignment.topCenter,
         ),
-        padding: EdgeInsets.only(top: 15)
-        ,);
+        padding: EdgeInsets.only(top: 15),
+        );
     }
   }
-
-  void _addActivity(Activity activity) {
-    setState(() {
-      _activities.add(activity);
-      _sortActivities();
-    });
-  }
-
-  void _sortActivities() {
-    _activities.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
-  }
 }
+
 
 class ActivityCard extends StatefulWidget {
   final Activity activity;
@@ -262,7 +221,7 @@ class _ActivityCardState extends State<ActivityCard> {
       PageRouteBuilder(
         transitionDuration: transitionDuration,
         pageBuilder: (context, animation, secondaryAnimation) => ViewActivityPage(),
-        settings: RouteSettings(arguments: widget.activity),
+        settings: RouteSettings(arguments: widget.activity.id),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           if (animation.value == 1) return ViewActivityPage();
 
