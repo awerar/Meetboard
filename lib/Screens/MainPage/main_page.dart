@@ -1,17 +1,16 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
-import 'package:meetboard/Screens/MainPage/create_activity_button.dart';
+import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
 import 'package:provider/provider.dart';
 
 class MainPage extends StatelessWidget {
-  static String routeName = "/";
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,9 +19,7 @@ class MainPage extends StatelessWidget {
         centerTitle: true,
       ),
       body: Consumer<ActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
-      floatingActionButton: CreateActivityButton((activity) {
-        Provider.of<ActivityListModel>(context, listen: false).addActivity(activity);
-      }),
+      floatingActionButton: MainPageSpeedDial(),
     );
   }
 
@@ -85,73 +82,30 @@ class ActivityCard extends StatefulWidget {
 }
 
 class _ActivityCardState extends State<ActivityCard> {
-  Timer _refresher;
-  Duration _timeLeft;
   GlobalKey _cardKey = GlobalKey();
-  bool _visible = true;
-
-  @override
-  void initState() {
-    _timeLeft = _getTimeLeft();
-
-    _refresher = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        _timeLeft = _getTimeLeft();
-      });
-    });
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    _refresher.cancel();
-    super.dispose();
-  }
-
-  Duration _getTimeLeft() {
-    return widget.activity.time.difference(DateTime.now());
-  }
+  DateFormat _dateFormat = DateFormat(DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY).add_jm();
 
   @override
   Widget build(BuildContext context) {
-    return Visibility(
-      visible: _visible,
-      maintainSize: true,
-      maintainAnimation: true,
-      maintainState: true,
-      child: Card(
-        margin: EdgeInsets.all(8),
-        key: _cardKey,
-        clipBehavior: Clip.hardEdge,
-        child: InkWell(
-          splashColor: Theme.of(context).primaryColor.withAlpha((255 * 0.6).floor()),
-          onTap: _transitionToViewPage,
-          splashFactory: InkRipple.splashFactory,
-            child: _buildCardContents()
-        ),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-        elevation: 2,
+    return Card(
+      margin: EdgeInsets.all(8),
+      key: _cardKey,
+      clipBehavior: Clip.hardEdge,
+      child: InkWell(
+        splashColor: Theme.of(context).primaryColor.withAlpha((255 * 0.6).floor()),
+        onTap: _transitionToViewPage,
+        splashFactory: InkRipple.splashFactory,
+          child: _buildCardContents()
       ),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+      ),
+      elevation: 2,
     );
   }
 
   Widget _buildCardContents() {
     ThemeData theme = Theme.of(context);
-
-    String timeLeftLabel = "";
-
-    int years = (_timeLeft.inDays ~/ 365);
-    if (_timeLeft.inDays >= 365) {
-      timeLeftLabel = "In $years ${years > 1 ? "years" : "year"} & ${_timeLeft.inDays % 365} days";
-    } else if (_timeLeft.inDays >= 2) {
-      timeLeftLabel = "In ${_timeLeft.inDays} days";
-    } else if (_timeLeft.inDays == 1) {
-      timeLeftLabel = "In one day & ${_timeLeft.inHours % 24}h";
-    } else {
-      timeLeftLabel = "In ${_timeLeft.inHours}h ${(_timeLeft.inMinutes % 60) + 1}m";
-    }
 
     return IntrinsicHeight(
         child:  Row(
@@ -172,7 +126,14 @@ class _ActivityCardState extends State<ActivityCard> {
             Flexible(
                 child: ListTile(
                   title: Hero(child: Text(widget.activity.name, ), tag: widget.activity.hashCode.toString() + "Title",),
-                  subtitle: Text(DateFormat(DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY).add_jm().format(widget.activity.time) + "\n$timeLeftLabel"),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(_dateFormat.format(widget.activity.time)),
+                      //ActivityTimeText(time: widget.activity.time,)
+                    ],
+                  ),
                   trailing: Text(widget.activity.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),
                   isThreeLine: true,
                 )
@@ -184,9 +145,6 @@ class _ActivityCardState extends State<ActivityCard> {
 
   void _transitionToViewPage() {
     final transitionDuration = Duration(milliseconds: 300);
-    setState(() {
-      _visible = false;
-    });
 
     EdgeInsets padding = (_cardKey.currentWidget as Card).margin;
 
@@ -272,8 +230,59 @@ class _ActivityCardState extends State<ActivityCard> {
           );
         }
       )
-    ).then((value) {
-      _visible = true;
+    );
+  }
+}
+
+class ActivityTimeText extends StatefulWidget {
+  final DateTime time;
+  ActivityTimeText({@required this.time});
+
+  @override
+  _ActivityTimeTextState createState() => _ActivityTimeTextState();
+}
+
+class _ActivityTimeTextState extends State<ActivityTimeText> {
+  Timer _timer;
+  String _label;
+
+  @override
+  void initState() {
+    _label = _getCurrentLabel();
+    _timer = Timer.periodic(Duration(milliseconds: 100), (timer) {
+      String label = _getCurrentLabel();
+      if (label != _label) {
+        setState(() {
+          _label = label;
+        });
+      }
     });
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(_label,);
+  }
+
+  String _getCurrentLabel() {
+    Duration timeLeft = widget.time.difference(DateTime.now());
+
+    if (timeLeft.inDays >= 365) {
+      int years = (timeLeft.inDays ~/ 365);
+      return "In $years ${years > 1 ? "years" : "year"} & ${timeLeft.inDays % 365} days";
+    } else if (timeLeft.inDays >= 2) {
+      return "In ${timeLeft.inDays} days";
+    } else if (timeLeft.inDays == 1) {
+      return "In one day & ${timeLeft.inHours % 24}h";
+    } else {
+      return "In ${timeLeft.inHours}h ${(timeLeft.inMinutes % 60) + 1}m ${timeLeft.inSeconds % 60}s";
+    }
   }
 }

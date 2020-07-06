@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity.dart';
 
-class CreateActivityPage extends StatefulWidget {
-  static const String routeName = "/create_activity_page";
-
+class EditActivityPage extends StatefulWidget {
   @override
-  _CreateActivityPageState createState() => _CreateActivityPageState();
+  _EditActivityPageState createState() => _EditActivityPageState();
 }
 
-class _CreateActivityPageState extends State<CreateActivityPage> {
+class _EditActivityPageState extends State<EditActivityPage> {
   DateTime _date;
   TimeOfDay _time;
   String _name;
   bool _hasTriedSubmitting = false;
-  Activity _baseActivity;
-  String _finishedLabel;
+  EditActivityPageSettings _settings;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -24,36 +21,26 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_finishedLabel == null) {
+    if (_settings == null) {
       Object args = ModalRoute.of(context).settings.arguments;
-      assert(args != null && args is Iterable<dynamic> && args.length >= 1 && args.elementAt(0) is String);
+      assert(args != null && args is EditActivityPageSettings);
+      _settings = args;
 
-      List<dynamic> argsList = (args as Iterable<dynamic>).toList(growable: false);
-      _finishedLabel = argsList[0];
-
-      if (argsList.length >= 2 && argsList[1] is Activity) _baseActivity = argsList[1];
-      if (_baseActivity != null) {
-        _name = _baseActivity.name;
-        _date = _baseActivity.time;
-        _time = TimeOfDay.fromDateTime(_baseActivity.time);
+      if (_settings.baseActivity != null) {
+        _name = _settings.baseActivity.name;
+        _date = _settings.baseActivity.time;
+        _time = TimeOfDay.fromDateTime(_settings.baseActivity.time);
         _hasTriedSubmitting = true;
       }
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create a new activity"),
+        title: Text(_settings.appbarLabel),
         centerTitle: true,
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.check),
-            onPressed: _createActivity,
-          )
-        ],
       ),
       body: GestureDetector(child: _buildForm(), onTap:() => FocusScope.of(context).requestFocus(new FocusNode()), behavior: HitTestBehavior.translucent,),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _createActivity, label: Text(_finishedLabel,), heroTag: "CreateButton"),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton(onPressed: _createActivity, child: Icon(Icons.save),),
     );
   }
 
@@ -158,14 +145,21 @@ class _CreateActivityPageState extends State<CreateActivityPage> {
 
       DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
-      if (_baseActivity == null) {
+      if (_settings.baseActivity == null) {
         Activity activity = Activity(_name, activityTime);
 
         Navigator.of(context).pop(activity);
       } else {
-        Activity newActivity = _baseActivity.copyWith(name: _name, time: activityTime);
+        Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
         Navigator.of(context).pop(newActivity);
       }
     } else _hasTriedSubmitting = true;
   }
+}
+
+class EditActivityPageSettings{
+  final Activity baseActivity;
+  final String appbarLabel;
+
+  EditActivityPageSettings({@required this.appbarLabel, this.baseActivity});
 }

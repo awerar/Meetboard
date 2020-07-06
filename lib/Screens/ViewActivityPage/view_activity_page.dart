@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
-import 'package:meetboard/Screens/CreatePage/create_activity_page.dart';
+import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:provider/provider.dart';
 
 class ViewActivityPage extends StatelessWidget {
@@ -17,11 +17,15 @@ class ViewActivityPage extends StatelessWidget {
 
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: Theme.of(context).colorScheme.background,
           title: Hero(child: Text(activity.name,), tag: activity.hashCode.toString() + "Title",),
           actions: <Widget>[
             IconButton(icon: Icon(Icons.edit), onPressed: () async {
-              var newActivity = await Navigator.of(context).pushNamed(CreateActivityPage.routeName, arguments: {"Save", activity});
+              var newActivity = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EditActivityPage(),
+                  settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Edit Activity", baseActivity: activity))
+                )
+              );
               if (newActivity != null && newActivity is Activity) activityList.updateActivity(newActivity);
             },)
           ],

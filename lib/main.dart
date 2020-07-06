@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/MainPage/main_page.dart';
 import 'package:meetboard/themes.dart';
-import 'package:meetboard/routes.dart';
 import 'package:flutter/scheduler.dart' show timeDilation;
 import 'package:provider/provider.dart';
 import 'package:meetboard/Models/user_model.dart';
@@ -23,8 +22,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: "Meetboard",
-        initialRoute: MainPage.routeName,
-        routes: routes,
+        home: MainPage(),
         theme: getTheme(),
       ),
     );

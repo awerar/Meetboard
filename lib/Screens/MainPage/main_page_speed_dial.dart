@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
+import 'package:provider/provider.dart';
 
-class CreateActivityButton extends StatefulWidget {
-  final void Function(Activity) onCreatedActivity;
-  CreateActivityButton(this.onCreatedActivity);
+class MainPageSpeedDial extends StatefulWidget {
 
   @override
-  _CreateActivityButtonState createState() => _CreateActivityButtonState();
+  _MainPageSpeedDialState createState() => _MainPageSpeedDialState();
 }
 
-class _CreateActivityButtonState extends State<CreateActivityButton> {
+class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
   bool _open = false;
 
   @override
@@ -55,22 +56,13 @@ class _CreateActivityButtonState extends State<CreateActivityButton> {
   }
 
   void _createActivity() async {
-    Activity result = await Navigator.of(context).pushNamed("/create_activity_page", arguments: {"Create"}) as Activity;
-    widget.onCreatedActivity(result);
+    Activity result = await Navigator.of(context).push(
+        MaterialPageRoute(
+            builder: (context) => EditActivityPage(),
+            settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity"))
+        )
+    ) as Activity;
 
-    //TODO: FIX
-    if (result != null) {
-      //onCreatedActivity(result);
-      Scaffold.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Activity Successfully Created"),
-            behavior: SnackBarBehavior.fixed,
-            action: SnackBarAction(
-              label: "View",
-              onPressed: () => Navigator.of(context).pushNamed(ViewActivityPage.routeName, arguments: result.id),
-            ),
-          )
-      );
-    }
+    if (result != null) Provider.of<ActivityListModel>(context).addActivity(result);
   }
 }
