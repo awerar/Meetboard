@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/user_activity.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:provider/provider.dart';
 
-class ActivityListModel extends ChangeNotifier {
+class UserActivityListModel extends ChangeNotifier {
   final UserModel _userModel;
   bool _isLoading = true;
-  final Map<String, Activity> _activities = {};
-  List<Activity> _activityList = [];
+  final Map<String, UserActivity> _activities = {};
+  List<UserActivity> _activityList = [];
 
-  List<Activity> get activities => _activityList;
+  List<UserActivity> get activities => _activityList;
   bool get isLoading => _isLoading;
 
-  ActivityListModel(this._userModel) {
+  UserActivityListModel(this._userModel) {
     _userModel.addListener(
       () async {
         _activities.clear();
@@ -22,7 +22,7 @@ class ActivityListModel extends ChangeNotifier {
         
         if (_userModel.user != null)  {
           final query = await _userModel.userDocument.collection("Activities").getDocuments();
-          _activities.addEntries(query.documents.map((doc) => MapEntry<String, Activity>(doc.documentID, Activity.fromDocument(doc))));
+          _activities.addEntries(query.documents.map((doc) => MapEntry<String, UserActivity>(doc.documentID, UserActivity.fromDocument(doc))));
         }
 
         _isLoading = false;
@@ -31,7 +31,7 @@ class ActivityListModel extends ChangeNotifier {
     );
   }
 
-  void addActivity(Activity activity) async {
+  void addActivity(UserActivity activity) async {
     final document = await _userModel.userDocument.collection("Activities").add(activity.encode());
     activity = activity.copyWith(id: document.documentID);
 
@@ -39,20 +39,20 @@ class ActivityListModel extends ChangeNotifier {
     onActivitiesChanged();
   }
   
-  void updateActivity(Activity activity) {
+  void updateActivity(UserActivity activity) {
     _userModel.userDocument.collection("Activities").document(activity.id).updateData(activity.encode());
     _activities[activity.id] = activity;
     onActivitiesChanged();
   }
   
   void onActivitiesChanged() {
-    List<Activity> activityList = _activities.values.toList(growable: false);
+    List<UserActivity> activityList = _activities.values.toList(growable: false);
     activityList.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
-    _activityList = List<Activity>.unmodifiable(activityList);
+    _activityList = List<UserActivity>.unmodifiable(activityList);
     notifyListeners();
   }
 
-  Activity getActivity(String id) {
+  UserActivity getActivity(String id) {
     return _activities[id];
   }
 }

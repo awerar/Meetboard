@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'package:meetboard/Models/activity.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/Models/user_activity.dart';
+import 'package:meetboard/Models/user_activity_list_model.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:provider/provider.dart';
@@ -56,13 +56,13 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
   }
 
   void _createActivity() async {
-    Activity result = await Navigator.of(context).push(
+    UserActivity result = await Navigator.of(context).push(
         MaterialPageRoute(
             builder: (context) => EditActivityPage(),
             settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity"))
         )
-    ) as Activity;
+    ) as UserActivity;
 
-    if (result != null) Provider.of<ActivityListModel>(context).addActivity(result);
+    if (result != null) Provider.of<UserActivityListModel>(context).addActivity(result);
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/user_activity.dart';
 
 class EditActivityPage extends StatefulWidget {
   @override
@@ -146,11 +146,11 @@ class _EditActivityPageState extends State<EditActivityPage> {
       DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
       if (_settings.baseActivity == null) {
-        Activity activity = Activity(_name, activityTime);
+        UserActivity activity = UserActivity(_name, activityTime);
 
         Navigator.of(context).pop(activity);
       } else {
-        Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
+        UserActivity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
         Navigator.of(context).pop(newActivity);
       }
     } else _hasTriedSubmitting = true;
@@ -158,7 +158,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
 }
 
 class EditActivityPageSettings{
-  final Activity baseActivity;
+  final UserActivity baseActivity;
   final String appbarLabel;
 
   EditActivityPageSettings({@required this.appbarLabel, this.baseActivity});

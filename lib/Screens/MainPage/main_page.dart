@@ -1,10 +1,11 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/user_activity.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/Models/user_activity_list_model.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
@@ -18,13 +19,13 @@ class MainPage extends StatelessWidget {
         title: Text("Planned Activities",),
         centerTitle: true,
       ),
-      body: Consumer<ActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
+      body: Consumer<UserActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
       floatingActionButton: MainPageSpeedDial(),
     );
   }
 
-  Widget _buildActivityList(ActivityListModel activityListModel, BuildContext context) {
-    List<Activity> activities = activityListModel.activities;
+  Widget _buildActivityList(UserActivityListModel activityListModel, BuildContext context) {
+    List<UserActivity> activities = activityListModel.activities;
 
     if (!activityListModel.isLoading && activities.length > 0) {
       List<int> categoryDays = [
@@ -38,7 +39,7 @@ class MainPage extends StatelessWidget {
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(Activity activity in activities) {
+      for(UserActivity activity in activities) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
         int dayDiff = activity.time.difference(today).inDays;
 
@@ -74,7 +75,7 @@ class MainPage extends StatelessWidget {
 
 
 class ActivityCard extends StatefulWidget {
-  final Activity activity;
+  final UserActivity activity;
   ActivityCard({@required this.activity});
 
   @override
@@ -131,7 +132,7 @@ class _ActivityCardState extends State<ActivityCard> {
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       Text(_dateFormat.format(widget.activity.time)),
-                      //ActivityTimeText(time: widget.activity.time,)
+                      ActivityTimeText(time: widget.activity.time,)
                     ],
                   ),
                   trailing: Text(widget.activity.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),

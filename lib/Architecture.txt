@@ -1,0 +1,49 @@
+Firestore:
+    "user" Collection:
+        Name: uid
+        Read & write: user
+
+        Contains basic info about user
+        Contains array of activity ids
+        "activity" sub-collection:
+            Name: activity id
+            Contains a bit of data from the activity to draw preview: Time, Name
+            Contains the users relationship towards the activity: Coming
+
+    "activity" Collection:
+        Name: activity id
+        Read: users inside in "users" map'
+        Write: owner
+
+        Contains full data about the activity
+        Contains map "users":
+            key: uid
+            "owner": The owner of the activity
+            "participant": People participating
+        Contains array "coming" with uids
+
+Cloud Functions:
+    updateUsers:
+        trigger: onWrite
+        location: "activity/{activityID}"
+        Adds and removes userActivity
+
+    updateActivity:
+        trigger: onWrite
+        location: "user/{uid}/activity/{userActivity}"
+        Updates the activityDocument with data from userActivity
+
+    createActivity:
+        trigger: onCreate
+        location: "user/{uid}/activity/{userActivity}"
+        Creates a new activity, sets user as owner, and updates userActivity with the activityID
+
+    removeUser:
+        trigger: onDelete
+        "user/{uid}/activity/{userActivity}"
+        Removes the user from the activity
+
+    manageActivityLifespan:
+        trigger: onWrite
+        location: "activity/{activityID}"
+        Removes the activityDocument if no owners are left
