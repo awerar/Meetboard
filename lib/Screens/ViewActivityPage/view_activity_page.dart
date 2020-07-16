@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/user_activity.dart';
-import 'package:meetboard/Models/user_activity_list_model.dart';
+import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:provider/provider.dart';
 
@@ -9,11 +9,11 @@ class ViewActivityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String activityId = ModalRoute.of(context).settings.arguments;
-    assert(activityId != null && activityId != "");
+    ValueReference<Activity> activityReference = ModalRoute.of(context).settings.arguments;
+    assert(activityReference != null);
 
-    return Consumer<UserActivityListModel>(builder: (context, activityList, child) {
-      UserActivity activity = activityList.getActivity(activityId);
+    return Consumer<ActivityListModel>(builder: (context, activityList, child) {
+      Activity activity = activityReference.value;
 
       return Scaffold(
         appBar: AppBar(
@@ -26,7 +26,7 @@ class ViewActivityPage extends StatelessWidget {
                   settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Edit Activity", baseActivity: activity))
                 )
               );
-              if (newActivity != null && newActivity is UserActivity) activityList.updateActivity(newActivity);
+              if (newActivity != null && newActivity is Activity) activityList.updateActivity(newActivity);
             },)
           ],
         ),

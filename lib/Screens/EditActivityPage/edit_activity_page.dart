@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/user_activity.dart';
+import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/activity_preview.dart';
 
 class EditActivityPage extends StatefulWidget {
   @override
@@ -56,7 +57,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
         autocorrect: true,
         enableSuggestions: true,
         textCapitalization: TextCapitalization.words,
-        validator: (name) => name.length >= 3 ? null : "Name too short",
+        validator: (name) => name.length >= 3 ? (name.length <= 20 ? null : "Name too long") : "Name too short",
         autovalidate: true,
         controller: TextEditingController(text: _name),
       ),
@@ -146,11 +147,11 @@ class _EditActivityPageState extends State<EditActivityPage> {
       DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
       if (_settings.baseActivity == null) {
-        UserActivity activity = UserActivity(_name, activityTime);
+        ActivityPreview activity = ActivityPreview(_name, activityTime);
 
         Navigator.of(context).pop(activity);
       } else {
-        UserActivity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
+        Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
         Navigator.of(context).pop(newActivity);
       }
     } else _hasTriedSubmitting = true;
@@ -158,7 +159,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
 }
 
 class EditActivityPageSettings{
-  final UserActivity baseActivity;
+  final Activity baseActivity;
   final String appbarLabel;
 
   EditActivityPageSettings({@required this.appbarLabel, this.baseActivity});

@@ -1,49 +1,67 @@
 Firestore:
-    "user" Collection:
+    "users" Collection:
         Name: uid
-        Read & write: user
 
-        Contains basic info about user
-        Contains array of activity ids
-        "activity" sub-collection:
-            Name: activity id
-            Contains a bit of data from the activity to draw preview: Time, Name
-            Contains the users relationship towards the activity: Coming
+        Contains public info about user
+        "private_data" sub-collection:
+            Name: "user_activities"
+                Contains array of activity ids: activities
+                Contains number of activities: activity_count
+                "user_activities" sub-collection:
+                    Name: activity id
 
-    "activity" Collection:
+                    Contains preview data for the activity: time, name, coming
+                    Contains user role: role
+
+            Name: "readonly"
+                Contains readonly private data about user: next_action_time
+
+    "activities" Collection:
         Name: activity id
-        Read: users inside in "users" map'
-        Write: owner
 
-        Contains full data about the activity
-        Contains map "users":
-            key: uid
-            "owner": The owner of the activity
-            "participant": People participating
-        Contains array "coming" with uids
+        Contains full data about the activity: time, name
+        Contains list "users"
+        "users" sub-collection:
+            name: uid
+
+            Contains data about the user in the activity: role, coming
 
 Cloud Functions:
-    updateUsers:
-        trigger: onWrite
-        location: "activity/{activityID}"
-        Adds and removes userActivity
+    onActivityChanged:
+        fireStore onWrite: "activities/{activity}"
+        Updates the user_activities with activity data
 
-    updateActivity:
-        trigger: onWrite
-        location: "user/{uid}/activity/{userActivity}"
-        Updates the activityDocument with data from userActivity
+    onUserRemoved:
+        fireStore onDelete: "activities/{activity}/users/{userData}"
+        Removes the userActivity and removes user from users list
+        If user is last user, remove activity
+        If user is owner, removes all other users aswell
+
+    onUserAdded:
+        fireStore onCreate': "activities/{activity}/users/{userData}"
+        Adds a userActivity and adds user to users list
+
+    onUserDataChanged:
+        fireStore onUpdate: "activities/{activity}/users/{userData}"
+        Updates the users userActivity
 
     createActivity:
-        trigger: onCreate
-        location: "user/{uid}/activity/{userActivity}"
-        Creates a new activity, sets user as owner, and updates userActivity with the activityID
+        HTTPS Callable
+        Arguments: activityData: name, time
+        Returns: activityID
+        Creates a new activity with user as owner
 
-    removeUser:
-        trigger: onDelete
-        "user/{uid}/activity/{userActivity}"
-        Removes the user from the activity
+    joinActivity:
+        HTTPS Callable
+        Arguments: activityID: id
+        Adds the userData to the activity
 
-    manageActivityLifespan:
-        trigger: onWrite
-        location: "activity/{activityID}"
-        Removes the activityDocument if no owners are left
+    inviteToActivity:
+        HTTPS Callable
+        Arguments: activityID, uid
+        Only owner: adds user userData
+
+    NOTES: Owner kick: remove userData document -> onUserRemoved
+           Owner invite: inviteToActivity -> onUserAdded
+           Join: Call joinActivity -> onUserAdded
+           Leave: remove userData document -> onUserRemoved

@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/user_activity.dart';
+import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/activity_preview.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/user_activity_list_model.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
@@ -19,15 +19,15 @@ class MainPage extends StatelessWidget {
         title: Text("Planned Activities",),
         centerTitle: true,
       ),
-      body: Consumer<UserActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
+      body: Consumer<ActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
       floatingActionButton: MainPageSpeedDial(),
     );
   }
 
-  Widget _buildActivityList(UserActivityListModel activityListModel, BuildContext context) {
-    List<UserActivity> activities = activityListModel.activities;
+  Widget _buildActivityList(ActivityListModel activityListModel, BuildContext context) {
+    List<ActivityPreview> activities = activityListModel.activityPreviews.map((ref) => ref.value).toList(growable: false);
 
-    if (!activityListModel.isLoading && activities.length > 0) {
+    if (!activityListModel.isLoadingPreviews && activities.length > 0) {
       List<int> categoryDays = [
         0, 1, 6, 30, 365, 99999999
       ];
@@ -39,7 +39,7 @@ class MainPage extends StatelessWidget {
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(UserActivity activity in activities) {
+      for(ActivityPreview activity in activities) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
         int dayDiff = activity.time.difference(today).inDays;
 
@@ -57,7 +57,7 @@ class MainPage extends StatelessWidget {
           ));
           tiles.add(Divider());
         }
-        tiles.add(ActivityCard(activity: activity));
+        tiles.add(ActivityCard(activityPreview: activity));
         first = false;
       }
 
@@ -75,8 +75,8 @@ class MainPage extends StatelessWidget {
 
 
 class ActivityCard extends StatefulWidget {
-  final UserActivity activity;
-  ActivityCard({@required this.activity});
+  final ActivityPreview activityPreview;
+  ActivityCard({@required this.activityPreview});
 
   @override
   _ActivityCardState createState() => _ActivityCardState();
@@ -117,7 +117,7 @@ class _ActivityCardState extends State<ActivityCard> {
               child: Stack(
                 children: <Widget>[
                   Container(
-                    color: widget.activity.coming ? green : red,
+                    color: widget.activityPreview.coming ? green : red,
                     constraints: BoxConstraints.expand(),
                   ),
                   Align(child: Icon(Icons.chevron_left, color: Colors.white,), alignment: Alignment.center,)
@@ -126,16 +126,16 @@ class _ActivityCardState extends State<ActivityCard> {
             ),
             Flexible(
                 child: ListTile(
-                  title: Hero(child: Text(widget.activity.name, ), tag: widget.activity.hashCode.toString() + "Title",),
+                  title: Hero(child: Text(widget.activityPreview.name, ), tag: widget.activityPreview.hashCode.toString() + "Title",),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(_dateFormat.format(widget.activity.time)),
-                      ActivityTimeText(time: widget.activity.time,)
+                      Text(_dateFormat.format(widget.activityPreview.time)),
+                      ActivityTimeText(time: widget.activityPreview.time,)
                     ],
                   ),
-                  trailing: Text(widget.activity.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),
+                  trailing: Text(widget.activityPreview.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),
                   isThreeLine: true,
                 )
             )
@@ -144,8 +144,11 @@ class _ActivityCardState extends State<ActivityCard> {
     );
   }
 
-  void _transitionToViewPage() {
+  void _transitionToViewPage() async {
     final transitionDuration = Duration(milliseconds: 300);
+
+    final activityListModel = Provider.of<ActivityListModel>(context);
+    final ValueReference<Activity> activityReference = await activityListModel.beginListenForActivity(widget.activityPreview.id);
 
     EdgeInsets padding = (_cardKey.currentWidget as Card).margin;
 
@@ -180,7 +183,7 @@ class _ActivityCardState extends State<ActivityCard> {
       PageRouteBuilder(
         transitionDuration: transitionDuration,
         pageBuilder: (context, animation, secondaryAnimation) => ViewActivityPage(),
-        settings: RouteSettings(arguments: widget.activity.id),
+        settings: RouteSettings(arguments: activityReference),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           if (animation.value == 1) return ViewActivityPage();
 
