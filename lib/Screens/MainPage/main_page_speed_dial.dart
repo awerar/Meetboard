@@ -3,6 +3,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:meetboard/Models/activity_preview.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
+import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:provider/provider.dart';
 
 class MainPageSpeedDial extends StatefulWidget {
@@ -37,7 +38,7 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
 
   List<SpeedDialChild> _buildChildren() {
     return <SpeedDialChild>[
-      _createChild("Join Activity", Icon(Icons.person_add,), null),
+      _createChild("Join Activity", Icon(Icons.person_add,), _joinActivity),
       _createChild("Create Activity", Icon(Icons.create,), _createActivity)
     ];
   }
@@ -55,13 +56,28 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
   }
 
   void _createActivity() async {
-    ActivityPreview result = await Navigator.of(context).push(
+    await Navigator.of(context).push(
         MaterialPageRoute(
             builder: (context) => EditActivityPage(),
             settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity"))
         )
-    ) as ActivityPreview;
+    );
+  }
 
-    if (result != null) Provider.of<ActivityListModel>(context).createActivity(result);
+  void _joinActivity() async {
+    var result = await Navigator.of(context).push(MaterialPageRoute(builder: (context) => JoinActivityPage()));
+    if (result == null) return;
+
+    if(result as bool) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text("Successfully joined activity"),
+      ));
+    } else {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.error,
+        content: Builder(builder: (con) => Text("Error when joining activity. \n(Make sure you haven't joined already)",
+          style: DefaultTextStyle.of(con).style.copyWith(color: Theme.of(context).colorScheme.onError),)),
+      ));
+    }
   }
 }

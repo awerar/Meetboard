@@ -5,6 +5,14 @@ admin.initializeApp();
 
 const timoutSeconds = 5;
 
+function generateActivityID() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789".split("");
+
+    let id = "";
+    for(let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+    return id;
+}
+
 function getUserActivityDataFromActivity(activity: firestore.DocumentSnapshot) {
     return {
         name: activity.data()!.name,
@@ -69,9 +77,10 @@ exports.onUserAdded = functions.firestore.document("activities/{activity}/users/
         const userData = await transaction.get(userDataRef);
         const activity = await transaction.get(activityRef);
 
-        transaction.update(activityRef, {
-            users: firestore.FieldValue.arrayUnion(uid)
-        });
+        const activityUpdateData = {};
+        //@ts-ignore
+        activityUpdateData["users." + uid] = userData.data();
+        transaction.update(activityRef, activityUpdateData);
 
         transaction.update(privateUserDataRef, {
             activities: firestore.FieldValue.arrayUnion(activityID),
@@ -105,10 +114,11 @@ exports.onUserRemoved = functions.firestore.document("activities/{activity}/user
         //Delete activity
         if (usersLeft === 0) transaction.delete(activityRef);
         else {
-            //Remove user from activity array
-            transaction.update(activityRef, {
-                users: firestore.FieldValue.arrayRemove(uid)
-            });
+            //Remove user from activity map
+            const activityUpdateData = {};
+            //@ts-ignore
+            activityUpdateData["users." + uid] = firestore.FieldValue.delete();
+            transaction.update(activityRef, activityUpdateData);
         }
     
         //Remove activity data from users private_data
@@ -140,7 +150,15 @@ exports.onUserDataChanged = functions.firestore.document("activities/{activity}/
     const privateUserDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities");
     const userActivityRef = privateUserDataRef.collection("user_activities").doc(activityID);
 
-    return userActivityRef.update(getUserActivityDataFromUserData(userData.after));
+    const batch = admin.firestore().batch();
+    batch.update(userActivityRef, getUserActivityDataFromUserData(userData.after));
+
+    const activityUpdateData = {};
+    //@ts-ignore
+    activityUpdateData["users." + userData.after.id] = userData.after.data();
+    batch.update(activityRef, activityUpdateData);
+
+    return batch.commit();
 });
 
 exports.onActivityChanged = functions.firestore.document("activities/{activity}").onUpdate((activity, context) => {
@@ -148,7 +166,7 @@ exports.onActivityChanged = functions.firestore.document("activities/{activity}"
     const activityID = activity.after.id;
 
     const batch = admin.firestore().batch();
-    (activity.after.data().users as string[]).forEach(uid => {
+    Object.keys((activity.after.data().users as Object)).forEach(uid => {
         const userActivityRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities").collection("user_activities").doc(activityID);
         batch.update(userActivityRef, updateData);
     });
@@ -174,7 +192,7 @@ exports.createActivity = functions.https.onCall(async (data, context) => {
 
     const batch = admin.firestore().batch();
 
-    const activityRef = admin.firestore().collection("activities").doc();
+    const activityRef = admin.firestore().collection("activities").doc(generateActivityID());
     batch.set(activityRef, {
         ...data,
     });
@@ -187,7 +205,7 @@ exports.createActivity = functions.https.onCall(async (data, context) => {
 
     await batch.commit();
 
-    return "Done";
+    return activityRef.id;
 });
 
 exports.joinActivity = functions.https.onCall(async (data, context) => {
@@ -239,4 +257,14 @@ exports.inviteToActivity = functions.https.onCall(async (data, context) => {
     });
 
     return true;
+});
+
+exports.activityExists = functions.https.onCall(async (data, context) => {
+    if (context.auth === null || context.auth === undefined) throw new functions.https.HttpsError("unauthenticated", "Only a signed in user can check if an activity exists");
+    if (typeof data.id !== "string") throw new functions.https.HttpsError("invalid-argument", "'id' needs to be a string.");
+
+    const docRef = admin.firestore().collection("activities").doc(data.id);
+    const doc = await docRef.get();
+
+    return doc.exists;
 });

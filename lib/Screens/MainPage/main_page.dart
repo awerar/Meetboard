@@ -85,6 +85,15 @@ class ActivityCard extends StatefulWidget {
 class _ActivityCardState extends State<ActivityCard> {
   GlobalKey _cardKey = GlobalKey();
   DateFormat _dateFormat = DateFormat(DateFormat.YEAR_ABBR_MONTH_WEEKDAY_DAY).add_jm();
+  ThemeData _fallbackTheme;
+  ThemeData get _theme {
+    try {
+      _fallbackTheme = Theme.of(context);
+    } catch(e){
+      if (_fallbackTheme == null) _fallbackTheme = ThemeData.fallback();
+    }
+    return _fallbackTheme;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +102,7 @@ class _ActivityCardState extends State<ActivityCard> {
       key: _cardKey,
       clipBehavior: Clip.hardEdge,
       child: InkWell(
-        splashColor: Theme.of(context).primaryColor.withAlpha((255 * 0.6).floor()),
+        splashColor: _theme.primaryColor.withAlpha((255 * 0.6).floor()),
         onTap: _transitionToViewPage,
         splashFactory: InkRipple.splashFactory,
           child: _buildCardContents()
@@ -106,21 +115,19 @@ class _ActivityCardState extends State<ActivityCard> {
   }
 
   Widget _buildCardContents() {
-    ThemeData theme = Theme.of(context);
-
     return IntrinsicHeight(
         child:  Row(
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
             SizedBox(
-              width: 25,
+              width: 30,
               child: Stack(
                 children: <Widget>[
                   Container(
                     color: widget.activityPreview.coming ? green : red,
                     constraints: BoxConstraints.expand(),
                   ),
-                  Align(child: Icon(Icons.chevron_left, color: Colors.white,), alignment: Alignment.center,)
+                  Align(child: Icon(widget.activityPreview.coming ? Icons.check : Icons.close, color: Colors.white), alignment: Alignment.center,)
                 ],
               ),
             ),
@@ -135,7 +142,7 @@ class _ActivityCardState extends State<ActivityCard> {
                       ActivityTimeText(time: widget.activityPreview.time,)
                     ],
                   ),
-                  trailing: Text(widget.activityPreview.coming ? "" : "Not Coming", style: theme.textTheme.bodyText2.copyWith(inherit: true, color: theme.colorScheme.error),),
+                  trailing: Text(widget.activityPreview.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),
                   isThreeLine: true,
                 )
             )
@@ -148,7 +155,9 @@ class _ActivityCardState extends State<ActivityCard> {
     final transitionDuration = Duration(milliseconds: 300);
 
     final activityListModel = Provider.of<ActivityListModel>(context);
-    final ValueReference<Activity> activityReference = await activityListModel.beginListenForActivity(widget.activityPreview.id);
+    final ValueReference<Activity> activityReference = await activityListModel.beginListenForActivity(widget.activityPreview.id, onActivityRemoved: () {
+      Navigator.of(context).pop();
+    });
 
     EdgeInsets padding = (_cardKey.currentWidget as Card).margin;
 

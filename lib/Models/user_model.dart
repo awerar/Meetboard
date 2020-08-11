@@ -20,6 +20,15 @@ class UserModel extends ChangeNotifier {
     if (_user == null) {
       _user = (await FirebaseAuth.instance.signInAnonymously()).user;
     }
+    FirebaseAuth.instance.onAuthStateChanged.listen((newUser) async {
+      if (newUser == null) {
+        _user = newUser;
+        notifyListeners();
+
+        _user = (await FirebaseAuth.instance.signInAnonymously()).user;
+        notifyListeners();
+      }
+    });
 
     _handleUserDocument();
 

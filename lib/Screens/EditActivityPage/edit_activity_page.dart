@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Models/activity_preview.dart';
+import 'package:provider/provider.dart';
 
 class EditActivityPage extends StatefulWidget {
   @override
@@ -140,16 +142,14 @@ class _EditActivityPageState extends State<EditActivityPage> {
     });
   }
 
-  void _createActivity() {
+  void _createActivity() async {
     if (_formKey.currentState.validate()) {
       assert(_date != null && _time != null && _name != null);
 
       DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
       if (_settings.baseActivity == null) {
-        ActivityPreview activity = ActivityPreview(_name, activityTime);
-
-        Navigator.of(context).pop(activity);
+        Navigator.of(context).pop(Provider.of<ActivityListModel>(context).createActivity(name: _name, time: activityTime));
       } else {
         Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
         Navigator.of(context).pop(newActivity);

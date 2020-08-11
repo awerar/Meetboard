@@ -20,7 +20,10 @@ Firestore:
         Name: activity id
 
         Contains full data about the activity: time, name
-        Contains list "users"
+        Contains map "users":
+            key: uid
+            value: userData document data
+
         "users" sub-collection:
             name: uid
 
@@ -43,18 +46,23 @@ Cloud Functions:
 
     onUserDataChanged:
         fireStore onUpdate: "activities/{activity}/users/{userData}"
-        Updates the users userActivity
+        Updates the users userActivity and the activity document
 
     createActivity:
         HTTPS Callable
-        Arguments: activityData: name, time
-        Returns: activityID
+        Arguments: activityID, activityData: name, time
         Creates a new activity with user as owner
+        returns: the id of the activity
 
     joinActivity:
         HTTPS Callable
         Arguments: activityID: id
         Adds the userData to the activity
+
+    activityExists:
+        HTTPS Callable
+        Arguments: activityID: id
+        returns true or false
 
     inviteToActivity:
         HTTPS Callable
