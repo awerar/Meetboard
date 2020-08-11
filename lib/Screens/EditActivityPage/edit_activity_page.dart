@@ -16,6 +16,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
   String _name;
   bool _hasTriedSubmitting = false;
   EditActivityPageSettings _settings;
+  bool _creating = false;
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -108,11 +109,16 @@ class _EditActivityPageState extends State<EditActivityPage> {
     ];
 
     var tiles = sections.map((e) {
-      return ListTile(title: e);
+      return ListTile(title: e) as Widget;
     });
 
     return Form(
-      child: ListView(children: tiles.toList(), padding: EdgeInsets.only(top: 15),),
+      child: ListView(children: tiles.toList()..insert(0, Column(
+        children: <Widget>[
+          if (_creating) CircularProgressIndicator(),
+          if(_creating) SizedBox(height: 10)
+        ],
+      )), padding: EdgeInsets.only(top: 15),),
       key: _formKey,
     );
   }
@@ -143,17 +149,23 @@ class _EditActivityPageState extends State<EditActivityPage> {
   }
 
   void _createActivity() async {
+    if (_creating) return;
+
     if (_formKey.currentState.validate()) {
       assert(_date != null && _time != null && _name != null);
 
       DateTime activityTime = DateTime(_date.year, _date.month, _date.day, _time.hour, _time.minute);
 
+      setState(() {
+        _creating = true;
+      });
       if (_settings.baseActivity == null) {
-        Navigator.of(context).pop(Provider.of<ActivityListModel>(context).createActivity(name: _name, time: activityTime));
+        await _settings.handleNewActivity(await Provider.of<ActivityListModel>(context).createActivity(name: _name, time: activityTime));
       } else {
         Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
-        Navigator.of(context).pop(newActivity);
+        await _settings.handleNewActivity(newActivity);
       }
+      Navigator.of(context).pop();
     } else _hasTriedSubmitting = true;
   }
 }
@@ -161,6 +173,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
 class EditActivityPageSettings{
   final Activity baseActivity;
   final String appbarLabel;
+  final Future<void> Function(Activity) handleNewActivity;
 
-  EditActivityPageSettings({@required this.appbarLabel, this.baseActivity});
+  EditActivityPageSettings({@required this.appbarLabel, this.baseActivity, @required this.handleNewActivity});
 }

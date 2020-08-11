@@ -59,7 +59,7 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
     await Navigator.of(context).push(
         MaterialPageRoute(
             builder: (context) => EditActivityPage(),
-            settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity"))
+            settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity", handleNewActivity: (a) => null))
         )
     );
   }
