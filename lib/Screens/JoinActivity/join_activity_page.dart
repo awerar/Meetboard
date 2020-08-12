@@ -34,10 +34,10 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
                   key: _formKey,
                   child: TextFormField(
                     textCapitalization: TextCapitalization.characters,
-                    validator: (id) => _validID ? null : "Invalid ID",
+                    validator: (id) => _validID ? null : "Invalid Code",
                     onChanged: (id) => _activityID = id,
                     decoration: InputDecoration(
-                      labelText: "Activity ID",
+                      labelText: "Activity Code",
                       border: OutlineInputBorder()
                     ),
                   ),
@@ -76,7 +76,8 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
     _validID = true;
     _formKey.currentState.validate();
 
-    _validID = (await CloudFunctions.instance.getHttpsCallable(functionName: "activityExists").call({"id": _activityID})).data as bool;
+    if (_activityID.length > 0) _validID = (await CloudFunctions.instance.getHttpsCallable(functionName: "activityExists").call({"id": _activityID})).data as bool;
+    else _validID = false;
     return _formKey.currentState.validate();
   }
 

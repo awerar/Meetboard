@@ -31,7 +31,7 @@ class ActivityListModel extends ChangeNotifier {
         _activityPreviews.clear();
         _previewListener?.cancel();
         _previewListener = null;
-        
+
         if (_userModel.user != null)  {
           _isLoadingPreviews = true;
           onActivityPreviewsChanged();
@@ -68,7 +68,7 @@ class ActivityListModel extends ChangeNotifier {
 
     return activity;
   }
-  
+
   void onActivityPreviewsChanged() {
     List<ActivityPreview> previewList = _activityPreviews.values.toList();
     previewList.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
@@ -132,7 +132,7 @@ class ActivityListModel extends ChangeNotifier {
       //Wait for initial activity
       await activityStream.first;
     }
-    
+
     return ValueReference(getter: () {
       return _latestActivitySnapshot[id];
     });

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_widget/connectivity_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
@@ -60,8 +62,19 @@ class MainPage extends StatelessWidget {
         tiles.add(ActivityCard(activityPreview: activity));
         first = false;
       }
-
-      return ListView(children: tiles, padding: EdgeInsets.all(8),);
+      
+      return ConnectivityWidget(
+          offlineBanner: Container(color: Theme.of(context).colorScheme.error, child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text("Offline Mode", style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).colorScheme.onError), textAlign: TextAlign.center,),
+              ],
+            ),
+          ),),
+        builder: (context, isOnline) => ListView(children: tiles, padding: EdgeInsets.all(8),)
+      );
     } else {
       return Container(
         child: Align(
