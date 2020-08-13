@@ -6,12 +6,16 @@ class UserModel extends ChangeNotifier {
   FirebaseUser _user;
   DocumentReference _userDocument, _userActivitiesDocument;
   CollectionReference _userActivityCollection;
+  String _userName;
 
+  String get userName => _userName;
   FirebaseUser get user => _user;
   DocumentReference get userDocument => _userDocument;
   CollectionReference get userActivityCollection => _userActivityCollection;
 
-  UserModel() {
+  BuildContext _context;
+
+  UserModel(this._context) {
     _initializeUser();
   }
 

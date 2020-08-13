@@ -12,19 +12,22 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     timeDilation = 1;
-    final UserModel userModel = UserModel();
-    final ActivityListModel activityListModel = ActivityListModel(userModel);
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: userModel),
-        ChangeNotifierProvider.value(value: activityListModel)
-      ],
-      child: MaterialApp(
-        title: "Meetboard",
-        home: MainPage(),
-        theme: getTheme(),
-      ),
+    return MaterialApp(
+      title: "Meetboard",
+      home: Builder(builder: (context) {
+        final UserModel userModel = UserModel(context);
+        final ActivityListModel activityListModel = ActivityListModel(userModel);
+
+        return MultiProvider(
+          child: MainPage(),
+          providers: [
+            ChangeNotifierProvider.value(value: userModel),
+            ChangeNotifierProvider.value(value: activityListModel)
+          ],
+        );
+      }),
+      theme: getTheme(),
     );
   }
 }

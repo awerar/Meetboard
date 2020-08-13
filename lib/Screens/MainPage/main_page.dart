@@ -8,6 +8,7 @@ import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/activity_preview.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';

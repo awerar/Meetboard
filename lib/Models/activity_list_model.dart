@@ -143,7 +143,7 @@ class ActivityListModel extends ChangeNotifier {
     _onActivityRemovedWhileListening.remove(id);
   }
 
-  void updateActivity(Activity activity) async {
+  Future<void> updateActivity(Activity activity) async {
     await Firestore.instance.collection("activities").document(activity.id).updateData(activity.encode());
   }
 
