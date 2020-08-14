@@ -185,25 +185,28 @@ exports.createActivity = functions.https.onCall(async (data, context) => {
     if (!(typeof data.time === "number" && typeof data.name === "string")) throw new functions.https.HttpsError("invalid-argument", `Invalid activity data: time is ${typeof data.time} and should be number, name is ${typeof data.name} and should be string`);
     data.time = firestore.Timestamp.fromMillis(data.time);
 
-    const privateDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities");
+    const userRef = admin.firestore().collection("users").doc(uid);
+    const privateDataRef = userRef.collection("private_data").doc("user_activities");
     const privateData = await privateDataRef.get();
 
     if (privateData.data()!.activity_count > 1000) throw new functions.https.HttpsError("resource-exhausted", "Can't create more than 1000 activities.");
 
-    const batch = admin.firestore().batch();
-
     const activityRef = admin.firestore().collection("activities").doc(generateActivityID());
-    batch.set(activityRef, {
-        ...data,
-    });
-
     const userDataRef = activityRef.collection("users").doc(uid);
-    batch.set(userDataRef, {
-        role: "owner",
-        coming: true
-    });
 
-    await batch.commit();
+    await admin.firestore().runTransaction(async transaction => {
+        const username: String = (await transaction.get(userRef)).data()!.username;
+
+        transaction.set(activityRef, {
+            ...data,
+        });
+
+        transaction.set(userDataRef, {
+            role: "owner",
+            coming: true,
+            username: username
+        });
+    });
 
     return activityRef.id;
 });
@@ -221,12 +224,17 @@ exports.joinActivity = functions.https.onCall(async (data, context) => {
     const activitySnapshot = await activityRef.get();
     if (!activitySnapshot.exists) throw new functions.https.HttpsError("not-found", `There exists no activity with id ${data.id}`);
 
-    await activityRef.collection("users").doc(uid).create({
-        role: "participant",
-        coming: true
-    });
+    const userRef = admin.firestore().collection("users").doc(uid);
 
-    return "Done";
+    return admin.firestore().runTransaction(async transaction => {
+        const username: String = (await transaction.get(userRef)).data()!.username;
+
+        transaction.create(activityRef.collection("users").doc(uid), {
+            role: "participant",
+            coming: true,
+            username: username
+        });
+    });
 });
 
 exports.inviteToActivity = functions.https.onCall(async (data, context) => {
@@ -251,12 +259,11 @@ exports.inviteToActivity = functions.https.onCall(async (data, context) => {
     const otherUserPrivateDataSnapshot = await otherUserPrivateDataRef.get();
     if ((otherUserPrivateDataSnapshot.data()!.activities as string[]).includes(activityID)) throw new functions.https.HttpsError("already-exists", `User ${otherUID} already is part of activity ${activityID}.`);
 
-    await admin.firestore().collection("activities").doc(activityID).collection("users").doc(otherUID).create({
+    return admin.firestore().collection("activities").doc(activityID).collection("users").doc(otherUID).create({
         role: "participant",
-        coming: true
+        coming: true,
+        username: otherUserSnapshot.data()!.username
     });
-
-    return true;
 });
 
 exports.activityExists = functions.https.onCall(async (data, context) => {

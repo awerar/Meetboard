@@ -2,7 +2,7 @@ Firestore:
     "users" Collection:
         Name: uid
 
-        Contains public info about user
+        Contains public info about user: username
         "private_data" sub-collection:
             Name: "user_activities"
                 Contains array of activity ids: activities
@@ -27,7 +27,7 @@ Firestore:
         "users" sub-collection:
             name: uid
 
-            Contains data about the user in the activity: role, coming, nickname
+            Contains data about the user in the activity: role, coming, username
 
 Cloud Functions:
     onActivityChanged:

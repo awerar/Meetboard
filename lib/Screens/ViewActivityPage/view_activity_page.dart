@@ -190,7 +190,7 @@ class UserChip extends StatelessWidget {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Container(child: Text(user.uid, overflow: TextOverflow.ellipsis, ), constraints: BoxConstraints(maxWidth: 100),),
+            Container(child: Text(user.username, overflow: TextOverflow.ellipsis, ), constraints: BoxConstraints(maxWidth: 100),),
             SizedBox(width: 5,),
           ]..addAll((tags.values.map((e) => Icon(e)).toList()..insert(0, Icon(coming ? Icons.check : Icons.close, color: coming ? green : red))).expand((element) => [element, SizedBox(width: 5,)]).toList()..removeLast()),
         ),

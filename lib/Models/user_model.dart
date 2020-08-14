@@ -6,16 +6,16 @@ class UserModel extends ChangeNotifier {
   FirebaseUser _user;
   DocumentReference _userDocument, _userActivitiesDocument;
   CollectionReference _userActivityCollection;
-  String _userName;
+  String _username;
 
-  String get userName => _userName;
+  String get username => _username;
   FirebaseUser get user => _user;
   DocumentReference get userDocument => _userDocument;
   CollectionReference get userActivityCollection => _userActivityCollection;
 
-  BuildContext _context;
+  GlobalKey<NavigatorState> _navigatorKey;
 
-  UserModel(this._context) {
+  UserModel(this._navigatorKey) {
     _initializeUser();
   }
 
@@ -35,15 +35,81 @@ class UserModel extends ChangeNotifier {
     _userActivitiesDocument = _userDocument.collection("private_data").document("user_activities");
     _userActivityCollection = _userActivitiesDocument.collection("user_activities");
     DocumentSnapshot documentSnapshot = await _userDocument.get();
-    if (!documentSnapshot.exists) _initializeUserDocument();
+    if (!documentSnapshot.exists) await _initializeUserDocument();
+    else await _readFromUserDocument();
   }
 
-  void _initializeUserDocument() {
-    Map<String, dynamic> startPrivateData = Map<String, dynamic>();
-    startPrivateData["activity_count"] = 0;
-    startPrivateData["activities"] = [];
+  Future<void> _initializeUserDocument() async {
+    await Future.wait([
+      _userActivitiesDocument.setData({
+        "activity_count": 0,
+        "activities": []
+      }),
+      queryUsername().then((username) {
+        return _userDocument.setData({
+          "username": username
+        });
+      })
+    ]);
+  }
 
-    _userDocument.setData(Map());
-    _userActivitiesDocument.setData(startPrivateData);
+  Future<void> _readFromUserDocument() async {
+    Map<String, dynamic> data = (await _userDocument.get()).data;
+    _username = data["username"];
+  }
+
+  Future<String> queryUsername() async {
+    String username;
+
+    await showDialog(
+      context: _navigatorKey.currentState.overlay.context,
+      builder: (context) => NameAlert((val) => username = val),
+      barrierDismissible: false
+    );
+
+    return username;
+  }
+}
+
+class NameAlert extends StatefulWidget {
+  final void Function(String) onUsernameDecided;
+
+  NameAlert(this.onUsernameDecided);
+
+  @override
+  _NameAlertState createState() => _NameAlertState();
+}
+
+class _NameAlertState extends State<NameAlert> {
+  String _username = "";
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text("Welcome to Meetboard!"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text("Please enter a username"),
+          TextField(
+            onChanged: (v) => setState(() => _username = v),
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+                labelText: "Username"
+            ),
+          ),
+          SizedBox(height: 10,),
+          RaisedButton(
+            onPressed: _username.length < 2 ? null : () {
+              widget.onUsernameDecided(_username);
+              Navigator.pop(context);
+            },
+            color: Theme.of(context).colorScheme.secondary,
+            child: Builder(builder: (context) => Text("Submit", style: DefaultTextStyle.of(context).style.copyWith(color: Theme.of(context).colorScheme.onSecondary),),),
+          )
+        ],
+      ),
+      contentPadding: EdgeInsets.fromLTRB(25, 0, 25, 5),
+    );
   }
 }

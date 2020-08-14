@@ -39,11 +39,12 @@ class UserActivityData {
   final String uid;
   final ActivityRole role;
   final bool coming;
+  final String username;
 
-  UserActivityData({@required this.uid, @required this.role, @required this.coming});
+  UserActivityData({@required this.uid, @required this.role, @required this.coming, @required this.username});
 
   static UserActivityData fromData(Map<String, dynamic> data, String uid) {
-    return UserActivityData(role: data["role"] == "owner" ? ActivityRole.Owner : ActivityRole.Participant, uid: uid, coming: data["coming"]);
+    return UserActivityData(role: data["role"] == "owner" ? ActivityRole.Owner : ActivityRole.Participant, uid: uid, coming: data["coming"], username: data["username"]);
   }
 
   Map<String, dynamic> getUpdateData({bool coming}) {
