@@ -125,7 +125,7 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
                 Wrap(
                   direction: Axis.horizontal,
                   alignment: WrapAlignment.spaceAround,
-                  children: activity.users.values.map((e) => UserChip(e,
+                  children: activity.users.values.map((e) => UserDisplay(e,
                           (u) => (u.coming && u.uid != _user.uid) || (_coming && u.uid == _user.uid),
                           (u) {
                             Map<String, IconData> tags = Map();
@@ -163,12 +163,12 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
   }
 }
 
-class UserChip extends StatelessWidget {
+class UserDisplay extends StatelessWidget {
   final UserActivityData user;
   final bool Function(UserActivityData) willCome;
   final Map<String, IconData> Function(UserActivityData) getExtraTags;
 
-  UserChip(this.user, this.willCome, this.getExtraTags);
+  UserDisplay(this.user, this.willCome, this.getExtraTags);
 
   @override
   Widget build(BuildContext context) {
@@ -180,13 +180,8 @@ class UserChip extends StatelessWidget {
       showDuration: Duration(seconds: 3),
       message: ((tags.keys.toList()..insert(0, coming ? "Coming" : "Not Coming")).expand((element) => [element, " - "]).toList()..removeLast()).fold("", (previousValue, element) => previousValue + element),
       child: Chip(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(
-            width: 2,
-            color: coming ? green : red
-          )
-        ),
+        elevation: 6,
+        backgroundColor: Theme.of(context).colorScheme.background,
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
