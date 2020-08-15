@@ -54,6 +54,14 @@ class UserActivityData {
 
     return data;
   }
+
+  @override
+  int get hashCode => uid.hashCode;
+
+  @override
+  bool operator ==(other) {
+    return other is UserActivityData && uid == other.uid;
+  }
 }
 
 enum ActivityRole {
