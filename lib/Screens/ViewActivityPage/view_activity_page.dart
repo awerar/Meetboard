@@ -99,17 +99,29 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
                           ],
                         ),
                       ),
-                      SizedBox(width: 10,),
-                      Tooltip(
-                        child: Icon(Icons.help,),
-                        message: "Make your friends enter\nthis code on their\ndevices for them to join",
-                        showDuration: Duration(seconds: 5,),
-                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      IconButton(
+                        icon: Icon(Icons.help),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: Text("Activity Code"),
+                                content: Text("If you share this code with your friends, they can enter it on their devices to join this activity"),
+                                actions: <Widget>[
+                                  FlatButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text("Got it!"),
+                                  )
+                                ],
+                              );
+                            }
+                          );
+                        },
                       )
                     ],
                   );
                 },),
-                SizedBox(height: 8,),
                 RaisedButton(
                   color: _coming ? green : red,
                   onPressed: () {
@@ -122,16 +134,14 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
                 SizedBox(height: 20,),
                 Text("People", style: Theme.of(context).textTheme.headline5, textAlign: TextAlign.center,),
                 Divider(),
-                Wrap(
-                  direction: Axis.horizontal,
-                  alignment: WrapAlignment.spaceAround,
-                  children: activity.users.values.map((e) => UserDisplay(e,
+                Column(
+                  children: activity.users.values.map<Widget>((e) => UserCard(e,
                           (u) => (u.coming && u.uid != _user.uid) || (_coming && u.uid == _user.uid),
                           (u) {
-                            Map<String, IconData> tags = Map();
+                            Map<String, Icon> tags = Map();
 
-                            if (u.uid == _user.uid) tags["You"] = Icons.face;
-                            if (u.role == ActivityRole.Owner) tags["Owner"] = Icons.vpn_key;
+                            if (u.uid == _user.uid) tags["You"] = Icon(Icons.face,);
+                            if (u.role == ActivityRole.Owner) tags["Owner"] = Icon(Icons.vpn_key);
 
                             return tags;
                           }
@@ -163,33 +173,35 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
   }
 }
 
-class UserDisplay extends StatelessWidget {
+class UserCard extends StatelessWidget {
   final UserActivityData user;
   final bool Function(UserActivityData) willCome;
-  final Map<String, IconData> Function(UserActivityData) getExtraTags;
+  final Map<String, Icon> Function(UserActivityData) getExtraTags;
 
-  UserDisplay(this.user, this.willCome, this.getExtraTags);
+  UserCard(this.user, this.willCome, this.getExtraTags);
 
   @override
   Widget build(BuildContext context) {
     bool coming = willCome(user);
 
-    Map<String, IconData> tags = getExtraTags(user);
+    Map<String, Icon> tags = getExtraTags(user);
 
-    return Tooltip(
-      showDuration: Duration(seconds: 3),
-      message: ((tags.keys.toList()..insert(0, coming ? "Coming" : "Not Coming")).expand((element) => [element, " - "]).toList()..removeLast()).fold("", (previousValue, element) => previousValue + element),
-      child: Chip(
-        elevation: 6,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Container(child: Text(user.username, overflow: TextOverflow.ellipsis, ), constraints: BoxConstraints(maxWidth: 100),),
-            SizedBox(width: 5,),
-          ]..addAll((tags.values.map((e) => Icon(e)).toList()..insert(0, Icon(coming ? Icons.check : Icons.close, color: coming ? green : red))).expand((element) => [element, SizedBox(width: 5,)]).toList()..removeLast()),
+    return Card(
+      child: ListTile(
+        title: Text(user.username),
+        trailing: IntrinsicWidth(
+          child: Row(
+            children: tags.values.toList(),
+          ),
         ),
-        avatar: Icon(Icons.person, color: Colors.black,),
+        subtitle: Text(willCome(user) ? "Coming" : "Not Coming",),
+        leading: CircleAvatar(
+          backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
+        )
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(25),
+        side: BorderSide(width: 2, color: red, style: !coming ? BorderStyle.solid : BorderStyle.none)
       ),
     );
   }
