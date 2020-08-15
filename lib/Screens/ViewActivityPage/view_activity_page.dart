@@ -1,5 +1,6 @@
 import 'package:clipboard_manager/clipboard_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
@@ -122,30 +123,33 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
                     ],
                   );
                 },),
-                RaisedButton(
-                  color: _coming ? green : red,
-                  onPressed: () {
-                    setState(() {
-                      _coming = !_coming;
-                    });
-                    _save(activity);
-                  }, child: Text(_coming ? "Coming" : "Not Coming", style: Theme.of(context).textTheme.subtitle2.copyWith(color: Colors.white),),
-                ),
-                SizedBox(height: 20,),
-                Text("People", style: Theme.of(context).textTheme.headline5, textAlign: TextAlign.center,),
-                Divider(),
-                Column(
-                  children: activity.users.values.map<Widget>((e) => UserCard(e,
-                          (u) => (u.coming && u.uid != _user.uid) || (_coming && u.uid == _user.uid),
-                          (u) {
-                            Map<String, Icon> tags = Map();
+                Builder(
+                  builder: (context) {
+                    List<Widget> Function(List<UserActivityData>) transform = (input) => (input..sort((a, b) {
+                      if (a.uid == _user.uid) return -1;
+                      else if (b.uid == _user.uid) return 1;
+                      else return a.username.compareTo(b.username);
+                    })).map((e) => UserDisplay(
+                        e,
+                        (u) => u.uid == _user.uid
+                    )).toList();
 
-                            if (u.uid == _user.uid) tags["You"] = Icon(Icons.face,);
-                            if (u.role == ActivityRole.Owner) tags["Owner"] = Icon(Icons.vpn_key);
+                    Widget Function(String) buildSubheader = (text) => Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        text,
+                        style: Theme.of(context).textTheme.subtitle1.copyWith(color: Colors.grey),
+                        textAlign: TextAlign.left,
+                      ),
+                    );
 
-                            return tags;
-                          }
-                          )).toList(),
+                    return Column(
+                      children: <Widget>[buildSubheader("People Coming")]
+                        ..addAll(transform(activity.users.values.where((element) => element.coming).toList()))
+                        ..add(SizedBox(height: 20,))..add(buildSubheader("People Not Coming"))
+                        ..addAll(transform(activity.users.values.where((element) => !element.coming).toList()))
+                    );
+                  },
                 )
               ],
             ),
@@ -171,38 +175,39 @@ class _ViewActivityPageState extends State<ViewActivityPage> {
       _saving = false;
     });
   }
+
+  void _swapComingState(Activity activity) {
+    setState(() {
+      _coming = !_coming;
+    });
+    _save(activity);
+  }
+
+  bool _willCome(UserActivityData user) {
+    return (user.uid != _user.uid && user.coming) || (user.uid == _user.uid && _coming);
+  }
 }
 
-class UserCard extends StatelessWidget {
+class UserDisplay extends StatelessWidget {
   final UserActivityData user;
-  final bool Function(UserActivityData) willCome;
-  final Map<String, Icon> Function(UserActivityData) getExtraTags;
+  final bool Function(UserActivityData) isUser;
 
-  UserCard(this.user, this.willCome, this.getExtraTags);
+  UserDisplay(this.user, this.isUser);
 
   @override
   Widget build(BuildContext context) {
-    bool coming = willCome(user);
+    bool isUser = this.isUser(user);
 
-    Map<String, Icon> tags = getExtraTags(user);
-
-    return Card(
-      child: ListTile(
-        title: Text(user.username),
-        trailing: IntrinsicWidth(
-          child: Row(
-            children: tags.values.toList(),
-          ),
-        ),
-        subtitle: Text(willCome(user) ? "Coming" : "Not Coming",),
+    Widget tile = ListTile(
+        title: !isUser ? Text(user.username) : Builder(builder: (context) => Text("You (${user.username})")),
+        subtitle: user.role == ActivityRole.Owner ? Text("Owner") : null,
         leading: CircleAvatar(
           backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
         )
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(25),
-        side: BorderSide(width: 2, color: red, style: !coming ? BorderStyle.solid : BorderStyle.none)
-      ),
+    );
+
+    return Card(
+      child: tile,
     );
   }
 }
