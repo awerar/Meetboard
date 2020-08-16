@@ -177,9 +177,9 @@ class UserList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
         children: <Widget>[_buildSubheader("People Coming")]
-          ..add(UserColumn(activity.users.values.where((element) => willCome(element)).toList(), user.uid,))
+          ..add(UserColumn(activity.users.values.where((element) => willCome(element)).toList(), user.uid, (u) => true))
           ..add(SizedBox(height: 20,))..add(_buildSubheader("People Not Coming"))
-          ..add(UserColumn(activity.users.values.where((element) => !willCome(element)).toList(), user.uid,))
+          ..add(UserColumn(activity.users.values.where((element) => !willCome(element)).toList(), user.uid, (u) => false))
     );
   }
 
@@ -201,9 +201,11 @@ class UserColumn extends StatefulWidget {
   final Map<String, UserActivityData> users;
   final HashSet<String> uids;
   final String userUID;
+  final bool Function(UserActivityData) willCome;
+
   final Duration animationDuration = Duration(milliseconds: 900);
 
-  UserColumn(List<UserActivityData> users, this.userUID, {Key key}) :
+  UserColumn(List<UserActivityData> users, this.userUID, this.willCome, {Key key}) :
         uids = HashSet<String>.from(users.map((e) => e.uid)),
         this.users = Map<String, UserActivityData>.fromIterable(users, key: (user) => user.uid),
         super(key: key);
@@ -265,6 +267,29 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
             subtitle: user.role == ActivityRole.Owner ? Text("Owner") : null,
             leading: CircleAvatar(
               backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
+              child: Align(
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.willCome(user) ? green : red,
+                    border: Border.fromBorderSide(BorderSide(width: 1, color: Colors.white))
+                  ),
+                  child: Flex(
+                    direction: Axis.horizontal,
+                    children: <Widget>[
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.fill,
+                          child: Icon(widget.willCome(user) ? Icons.check : Icons.close, color: Colors.white,),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                alignment: Alignment.bottomRight,
+              ),
             ),
           ),
           shape: RoundedRectangleBorder(
