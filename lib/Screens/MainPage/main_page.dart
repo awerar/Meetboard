@@ -9,7 +9,7 @@ import 'package:meetboard/Models/activity_preview.dart';
 import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
-import 'package:meetboard/Screens/ViewActivityPage/view_activity_page.dart';
+import 'package:meetboard/Screens/ActivityPage/activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
 import 'package:provider/provider.dart';
@@ -205,10 +205,10 @@ class _ActivityCardState extends State<ActivityCard> {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: transitionDuration,
-        pageBuilder: (context, animation, secondaryAnimation) => ViewActivityPage(),
+        pageBuilder: (context, animation, secondaryAnimation) => ActivityPage(),
         settings: RouteSettings(arguments: activityReference),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          if (animation.value == 1) return ViewActivityPage();
+          if (animation.value == 1) return ActivityPage();
 
           Animation easeInOutAnim = CurvedAnimation(
             parent: animation,
@@ -250,7 +250,7 @@ class _ActivityCardState extends State<ActivityCard> {
                 top: position.dy,
                 child: Opacity(
                   opacity: animation.value,
-                  child: ClipRRect(child: ViewActivityPage(), borderRadius: borderRadius,),
+                  child: ClipRRect(child: ActivityPage(), borderRadius: borderRadius,),
                 ),
               )
             ],

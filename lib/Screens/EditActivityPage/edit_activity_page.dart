@@ -71,13 +71,13 @@ class _EditActivityPageState extends State<EditActivityPage> {
         child: AbsorbPointer(
           child: TextFormField(
             decoration: InputDecoration(
-              labelText: "Date",
-              border: OutlineInputBorder(borderSide: BorderSide(),),
-              prefixIcon: IconButton(
-                icon: Icon(Icons.calendar_today),
-                onPressed: _pickDate,
-                color: Theme.of(context).colorScheme.onSurface,
-              )
+                labelText: "Date",
+                border: OutlineInputBorder(borderSide: BorderSide(),),
+                prefixIcon: IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: _pickDate,
+                  color: Theme.of(context).colorScheme.onSurface,
+                )
             ),
             controller: TextEditingController(text: _date != null ? DateFormat("yMMMEd").format(_date) : ""),
             validator: (v) => _date == null ? "Date not picked" : null,

@@ -7,16 +7,20 @@ class Activity {
   final Map<String, UserActivityData> users;
   final String id;
 
+  DocumentReference get activityDocument => Firestore.instance.collection("activities").document(id);
+
   Activity({@required this.name, @required this.time, @required Map<String, UserActivityData> users, @required this.id}) : users = Map.unmodifiable(users);
 
-  static Activity fromSnapshot(DocumentSnapshot snapshot) {
-    Map<String, UserActivityData> users = Map();
-    (Map<dynamic, dynamic>.from(snapshot.data["users"])).forEach((uid, data) {
-      users[uid] = UserActivityData.fromData(Map<String, dynamic>.from(data), uid);
-    });
-
-    return Activity(time: (snapshot.data["time"] as Timestamp).toDate(), name: snapshot.data["name"], users: users, id: snapshot.documentID);
-  }
+  Activity.fromSnapshot(DocumentSnapshot snapshot) :
+        name = snapshot.data["name"],
+        time = (snapshot.data["time"] as Timestamp).toDate(),
+        id = snapshot.documentID,
+        users = (Map<dynamic, dynamic>.from(snapshot.data["users"])).map((uid, data) {
+          return MapEntry(
+              uid,
+              UserActivityData.fromData(Map<String, dynamic>.from(data), uid, Firestore.instance.collection("activities").document(snapshot.documentID))
+          );
+        });
 
   Activity copyWith({String name, DateTime time, String id}) {
     return Activity(
@@ -33,6 +37,10 @@ class Activity {
       "time": Timestamp.fromDate(time)
     };
   }
+
+  DocumentReference getUserDataDocument(String uid) {
+    return activityDocument.collection("users").document(uid);
+  }
 }
 
 class UserActivityData {
@@ -43,7 +51,7 @@ class UserActivityData {
 
   UserActivityData({@required this.uid, @required this.role, @required this.coming, @required this.username});
 
-  static UserActivityData fromData(Map<String, dynamic> data, String uid) {
+  static UserActivityData fromData(Map<String, dynamic> data, String uid, DocumentReference activityDoc) {
     return UserActivityData(role: data["role"] == "owner" ? ActivityRole.Owner : ActivityRole.Participant, uid: uid, coming: data["coming"], username: data["username"]);
   }
 
