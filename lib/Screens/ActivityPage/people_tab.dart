@@ -33,7 +33,7 @@ class PeopleTab extends StatelessWidget {
   }
 
   bool _willCome(UserActivityData user, SettingsModel settings) {
-    return (user.uid != this.user.uid && user.coming) || (user.uid == this.user.uid && settings.getValue<bool>("coming"));
+    return (user.uid != this.user.uid && user.coming) || (user.uid == this.user.uid && settings.getSavedValue<bool>("coming"));
   }
 }
 

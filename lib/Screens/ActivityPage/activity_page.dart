@@ -21,9 +21,23 @@ class ActivityPage extends StatefulWidget {
   _ActivityPageState createState() => _ActivityPageState();
 }
 
-class _ActivityPageState extends State<ActivityPage> {
-  UserActivityData _user;
+class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderStateMixin {
   ValueReference<Activity> activityReference;
+  String _userUID;
+  UserActivityData get _user => activityReference.value.users[_userUID];
+
+  TabController tabController;
+
+  SettingsModel settings;
+
+  @override
+  void initState() {
+    tabController = TabController(
+      vsync: this,
+      length: 4
+    )..addListener(() => FocusScope.of(context).unfocus());
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -31,56 +45,57 @@ class _ActivityPageState extends State<ActivityPage> {
     assert(activityReference != null);
 
     try {
-      _user = activityReference.value.users[Provider
-          .of<UserModel>(context)
-          .user
-          .uid];
-    } catch(e) {
-      _user = activityReference.value.users.values.elementAt(0);
+      _userUID = Provider.of<UserModel>(context, listen: false).user.uid;
+    } catch (e) {
+      _userUID = activityReference.value.users.keys.first;
     }
+
+    if(settings == null) settings = SettingsModel(_getSettings());
+    else settings.updateInitialValues(SettingsModel(_getSettings()));
+
     super.didChangeDependencies();
+  }
+
+  @override
+  void dispose() {
+    tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ActivityListModel>(builder: (context, activityList, child) {
       Activity activity = activityReference.value;
+      settings.updateInitialValues(SettingsModel(_getSettings()));
 
-      return DefaultTabController(
-        length: 4,
-        child: Builder(
-          builder: (context) {
-            SettingsModel settings = SettingsModel(_getSettings());
-
-            return ChangeNotifierProvider.value(
-              value: settings,
-              child: Scaffold(
-                  appBar: AppBar(
-                    centerTitle: true,
-                    title: Text(activity.name,),
-                    actions: <Widget>[
-                      //if (_user.role == ActivityRole.Owner) IconButton(icon: Icon(Icons.edit), onPressed: _editActivity,)
-                    ],
-                    bottom: TabBar(
-                      tabs: <Widget>[
-                        Tab(icon: Icon(Icons.info), text: "Info",),
-                        Tab(icon: Icon(Icons.people), text: "People",),
-                        Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
-                        Tab(icon: Icon(Icons.settings), text: "Settings",),
-                      ],
-                    ),
-                  ),
-                  body: TabBarView(
-                      children: <Widget>[
-                        Container(),
-                        PeopleTab(activity, _user),
-                        Container(),
-                        SettingsTab(_user, activity, settings),
-                      ]
-                  )
+      return ChangeNotifierProvider<SettingsModel>.value(
+        value: settings,
+        child: Scaffold(
+            appBar: AppBar(
+              centerTitle: true,
+              title: Builder(builder: (context) => Text(Provider.of<SettingsModel>(context).getSavedValue("name"),)),
+              actions: <Widget>[
+                //if (_user.role == ActivityRole.Owner) IconButton(icon: Icon(Icons.edit), onPressed: _editActivity,)
+              ],
+              bottom: TabBar(
+                controller: tabController,
+                tabs: <Widget>[
+                  Tab(icon: Icon(Icons.info), text: "Info",),
+                  Tab(icon: Icon(Icons.people), text: "People",),
+                  Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
+                  Tab(icon: Icon(Icons.settings), text: "Settings",),
+                ],
               ),
-            );
-          },
+            ),
+            body: TabBarView(
+                controller: tabController,
+                children: <Widget>[
+                  Container(),
+                  PeopleTab(activity, _user),
+                  Container(),
+                  SettingsTab(_user, activity),
+                ]
+            )
         ),
       );
     });
@@ -101,14 +116,55 @@ class _ActivityPageState extends State<ActivityPage> {
     return {
       "coming": SettingsField<bool>(
           initialValue: _user.coming,
-          getSaveData: (value) {
+          getSaveData: (coming, settings) {
             return {
               activityReference.value.getUserDataDocument(_user.uid): {
-                "coming": value
+                "coming": coming
+              }
+            };
+          }
+      ),
+      "name": SettingsField<String>(
+        initialValue: activityReference.value.name,
+        getSaveData: (name, settings) {
+          return {
+            activityReference.value.activityDocument: {
+              "name": name
+            }
+          };
+        }
+      ),
+      "time": SettingsField<TimeOfDay>(
+          initialValue: TimeOfDay.fromDateTime(activityReference.value.time),
+          getSaveData: (time, settings) {
+            DateTime date = settings.getValue<DateTime>("date");
+            DateTime activityTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+            return {
+              activityReference.value.activityDocument: {
+                "time": Timestamp.fromDate(activityTime)
+              }
+            };
+          }
+      ),
+      "date": SettingsField<DateTime>(
+          initialValue: _calculateActivityDate(),
+          getSaveData: (date, settings) {
+            TimeOfDay time = settings.getValue<TimeOfDay>("time");
+            DateTime activityTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+            return {
+              activityReference.value.activityDocument: {
+                "time": Timestamp.fromDate(activityTime)
               }
             };
           }
       )
     };
+  }
+
+  DateTime _calculateActivityDate() {
+    DateTime date = activityReference.value.time;
+    return date.subtract(Duration(hours: date.hour, minutes: date.minute, seconds: date.second, milliseconds: date.millisecond, microseconds: date.microsecond));
   }
 }

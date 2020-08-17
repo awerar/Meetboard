@@ -60,7 +60,7 @@ class _EditActivityPageState extends State<EditActivityPage> {
         autocorrect: true,
         enableSuggestions: true,
         textCapitalization: TextCapitalization.words,
-        validator: (name) => name.length >= 3 ? (name.length <= 20 ? null : "Name too long") : "Name too short",
+        validator: (name) => name.length >= 3 ? (name.length <= 20 ? null : "Name must be at most 20 letters long") : "Name must be at least 3 letters long",
         autovalidate: true,
         controller: TextEditingController(text: _name),
       ),
