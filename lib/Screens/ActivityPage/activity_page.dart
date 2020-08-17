@@ -3,8 +3,10 @@ import 'dart:collection';
 import 'package:clipboard_manager/clipboard_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/Models/settings_model.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:meetboard/Screens/ActivityPage/settings_tab.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
@@ -46,29 +48,39 @@ class _ActivityPageState extends State<ActivityPage> {
 
       return DefaultTabController(
         length: 4,
-        child: Scaffold(
-            appBar: AppBar(
-              title: Hero(child: Text(activity.name,), tag: activity.hashCode.toString() + "Title",),
-              actions: <Widget>[
-                if (_user.role == ActivityRole.Owner) IconButton(icon: Icon(Icons.edit), onPressed: _editActivity,)
-              ],
-              bottom: TabBar(
-                tabs: <Widget>[
-                  Tab(icon: Icon(Icons.info), text: "Info",),
-                  Tab(icon: Icon(Icons.people), text: "People",),
-                  Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
-                  Tab(icon: Icon(Icons.settings), text: "Settings",),
-                ],
+        child: Builder(
+          builder: (context) {
+            SettingsModel settings = SettingsModel(_getSettings());
+
+            return ChangeNotifierProvider.value(
+              value: settings,
+              child: Scaffold(
+                  appBar: AppBar(
+                    centerTitle: true,
+                    title: Text(activity.name,),
+                    actions: <Widget>[
+                      //if (_user.role == ActivityRole.Owner) IconButton(icon: Icon(Icons.edit), onPressed: _editActivity,)
+                    ],
+                    bottom: TabBar(
+                      tabs: <Widget>[
+                        Tab(icon: Icon(Icons.info), text: "Info",),
+                        Tab(icon: Icon(Icons.people), text: "People",),
+                        Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
+                        Tab(icon: Icon(Icons.settings), text: "Settings",),
+                      ],
+                    ),
+                  ),
+                  body: TabBarView(
+                      children: <Widget>[
+                        Container(),
+                        PeopleTab(activity, _user),
+                        Container(),
+                        SettingsTab(_user, activity, settings),
+                      ]
+                  )
               ),
-            ),
-            body: TabBarView(
-                children: <Widget>[
-                  Container(),
-                  PeopleTab(activity, _user),
-                  Container(),
-                  SettingsTab(_user, activity),
-                ]
-            )
+            );
+          },
         ),
       );
     });
@@ -83,5 +95,20 @@ class _ActivityPageState extends State<ActivityPage> {
             }))
         )
     );
+  }
+
+  Map<String, SettingsField> _getSettings() {
+    return {
+      "coming": SettingsField<bool>(
+          initialValue: _user.coming,
+          getSaveData: (value) {
+            return {
+              activityReference.value.getUserDataDocument(_user.uid): {
+                "coming": value
+              }
+            };
+          }
+      )
+    };
   }
 }

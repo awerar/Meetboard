@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'package:clipboard_manager/clipboard_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
+import 'package:meetboard/Models/settings_model.dart';
+import 'package:provider/provider.dart';
 
 import '../../themes.dart';
 
@@ -18,14 +20,20 @@ class PeopleTab extends StatelessWidget {
       children: <Widget>[
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
-          child: Column(
-              children: []..add(UserColumn(activity.users.values.where((element) => element.coming).toList(), user.uid, (u) => true))
-                ..add(Divider())
-                ..add(UserColumn(activity.users.values.where((element) => !element.coming).toList(), user.uid, (u) => false))
+          child: Consumer<SettingsModel>(
+            builder: (BuildContext context, SettingsModel settings, Widget child) => Column(
+                children: []..add(UserColumn(activity.users.values.where((element) => _willCome(element, settings)).toList(), user.uid, (u) => true))
+                  ..add(Divider())
+                  ..add(UserColumn(activity.users.values.where((element) => !_willCome(element, settings)).toList(), user.uid, (u) => false))
+            ),
           ),
         )
       ],
     );
+  }
+
+  bool _willCome(UserActivityData user, SettingsModel settings) {
+    return (user.uid != this.user.uid && user.coming) || (user.uid == this.user.uid && settings.getValue<bool>("coming"));
   }
 }
 
