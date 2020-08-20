@@ -1,6 +1,5 @@
 import 'dart:collection';
 
-import 'package:clipboard_manager/clipboard_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -36,6 +35,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
       vsync: this,
       length: 4
     )..addListener(() => FocusScope.of(context).unfocus());
+
     super.initState();
   }
 

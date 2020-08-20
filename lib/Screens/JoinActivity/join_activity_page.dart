@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:qrscan/qrscan.dart';
 
 class JoinActivityPage extends StatefulWidget {
   @override
@@ -13,12 +14,24 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
   String _activityID = "";
   bool _isLoading = false;
 
+  TextEditingController textController;
+
+  @override
+  void initState() {
+    textController = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Join an existing activity"), centerTitle: false, actions: <Widget>[
-        IconButton(icon: Icon(Icons.person_add), onPressed: _join,),
-      ],),
+      appBar: AppBar(title: Text("Join an activity"), centerTitle: true,),
       body: SizedBox.expand(
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -33,15 +46,30 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
                 Form(
                   key: _formKey,
                   child: TextFormField(
+                    controller: textController,
                     textCapitalization: TextCapitalization.characters,
                     validator: (id) => _validID ? null : "Invalid Code",
                     onChanged: (id) => _activityID = id,
                     decoration: InputDecoration(
                       labelText: "Activity Code",
-                      border: OutlineInputBorder()
+                      border: OutlineInputBorder(),
+                      prefixIcon: IconButton(
+                        icon: Icon(Icons.center_focus_weak),
+                        onPressed: () async {
+                          String qr = await scan();
+                          if (qr.startsWith("meetboard:")) textController.text = qr.substring("meetboard:".length);
+                        },
+                      )
                     ),
                   ),
                 ),
+                SizedBox(height: 15,),
+                Flex(
+                    direction: Axis.horizontal,
+                    children: <Widget>[
+                      Expanded(child: RaisedButton(child: Text("Join!"), onPressed: _join, color: Theme.of(context).colorScheme.primary ,))
+                    ],
+                )
               ],
             ),
           ),

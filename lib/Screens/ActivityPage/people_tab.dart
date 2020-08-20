@@ -1,10 +1,10 @@
 import 'dart:collection';
 
-import 'package:clipboard_manager/clipboard_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/settings_model.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../themes.dart';
 
@@ -19,13 +19,39 @@ class PeopleTab extends StatelessWidget {
     return ListView(
       children: <Widget>[
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
+          padding: EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           child: Consumer<SettingsModel>(
-            builder: (BuildContext context, SettingsModel settings, Widget child) => Column(
-                children: []..add(UserColumn(activity.users.values.where((element) => _willCome(element, settings)).toList(), user.uid, (u) => true))
-                  ..add(Divider())
-                  ..add(UserColumn(activity.users.values.where((element) => !_willCome(element, settings)).toList(), user.uid, (u) => false))
-            ),
+            builder: (BuildContext context, SettingsModel settings, Widget child) {
+              List<UserActivityData> peopleComing =  activity.users.values.where((element) => _willCome(element, settings)).toList();
+              List<UserActivityData> peopleNotComing =  activity.users.values.where((element) => !_willCome(element, settings)).toList();
+
+              return Column(
+                  children: [
+                    Flex(
+                      direction: Axis.horizontal,
+                      children: <Widget>[
+                        Expanded(
+                          child: Builder(
+                            builder: (context) => RaisedButton.icon(
+                                icon: Icon(Icons.person_add),
+                                label: Text("Invite People"),
+                                onPressed: () => _invitePeople(context),
+                                color: Theme.of(context).colorScheme.primary
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Divider(),
+                    SizedBox(height: 20),
+                    _buildSubtitle("Coming – ${peopleComing.length}"),
+                    UserColumn(peopleComing, user.uid, (u) => true),
+                    SizedBox(height: 20,),
+                    _buildSubtitle("Not Coming – ${peopleNotComing.length}"),
+                    UserColumn(peopleNotComing, user.uid, (u) => false),
+                  ],
+              );
+            }
           ),
         )
       ],
@@ -34,6 +60,31 @@ class PeopleTab extends StatelessWidget {
 
   bool _willCome(UserActivityData user, SettingsModel settings) {
     return (user.uid != this.user.uid && user.coming) || (user.uid == this.user.uid && settings.getSavedValue<bool>("coming"));
+  }
+
+  Widget _buildSubtitle(String text) {
+    return Align(child: Builder(builder: (context) => Text(text, style: Theme.of(context).textTheme.subtitle2.copyWith(color: Colors.grey),)), alignment: Alignment.centerLeft,);
+  }
+
+  void _invitePeople(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Text("Invite People"),
+        content: IntrinsicHeight(
+          child: Center(
+            child: SizedBox.fromSize(
+              size: Size.square(100),
+              child: QrImage(
+                data: "meetboard:" + activity.id,
+                padding: EdgeInsets.all(0),
+              ),
+            ),
+          ),
+        ),
+      )
+    );
   }
 }
 
@@ -83,7 +134,7 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: users.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, controllers[user]), animation: controllers[user],)).toList(),
+      children: users.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, controllers[user]), animation: controllers[user],)).toList()
     );
   }
 
@@ -101,40 +152,36 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
       child: Builder(builder: (context) {
         bool isUser = user.uid == widget.userUID;
 
-        return Card(
-          child: ListTile(
-            title: !isUser ? Text(user.username) : Builder(builder: (context) => Text("You (${user.username})")),
-            subtitle: user.role == ActivityRole.Owner ? Text("Owner") : null,
-            leading: CircleAvatar(
-              backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
-              child: Align(
-                child: Container(
-                  width: 15,
-                  height: 15,
-                  decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: widget.willCome(user) ? green : red,
-                      border: Border.fromBorderSide(BorderSide(width: 1, color: Colors.white))
-                  ),
-                  padding: EdgeInsets.all(1),
-                  child: Flex(
-                    direction: Axis.horizontal,
-                    children: <Widget>[
-                      Expanded(
-                        child: FittedBox(
-                          fit: BoxFit.fill,
-                          child: Icon(widget.willCome(user) ? Icons.check : Icons.close, color: Colors.white,),
-                        ),
-                      ),
-                    ],
-                  ),
+        return ListTile(
+          contentPadding: EdgeInsets.only(left: 0),
+          title: !isUser ? Text(user.username) : Builder(builder: (context) => Text("You (${user.username})")),
+          subtitle: user.role == ActivityRole.Owner ? Text("Owner") : null,
+          leading: CircleAvatar(
+            backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
+            child: Align(
+              child: Container(
+                width: 15,
+                height: 15,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.willCome(user) ? green : red,
+                    border: Border.fromBorderSide(BorderSide(width: 1, color: Colors.white))
                 ),
-                alignment: Alignment.bottomRight,
+                padding: EdgeInsets.all(1),
+                child: Flex(
+                  direction: Axis.horizontal,
+                  children: <Widget>[
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: Icon(widget.willCome(user) ? Icons.check : Icons.close, color: Colors.white,),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              alignment: Alignment.bottomRight,
             ),
-          ),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15)
           ),
         );
       }),
