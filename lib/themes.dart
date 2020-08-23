@@ -16,7 +16,7 @@ ThemeData getTheme() {
       onSecondary: Colors.white,
 
       background: Colors.white,
-      onBackground: Colors.grey,
+      onBackground: Colors.black,
 
       surface: Colors.white,
       onSurface: Colors.black,
@@ -35,6 +35,72 @@ ThemeData getTheme() {
     accentColor: colorScheme.secondary,
 
     brightness: Brightness.light,
-    fontFamily: GoogleFonts.openSans().fontFamily
+
+    //Arvo & Source Sans Pro
+    textTheme: TextTheme(
+      headline1: GoogleFonts.arvo(
+          fontSize: 101,
+          fontWeight: FontWeight.w300,
+          letterSpacing: -1.5
+      ),
+      headline2: GoogleFonts.arvo(
+          fontSize: 63,
+          fontWeight: FontWeight.w300,
+          letterSpacing: -0.5
+      ),
+      headline3: GoogleFonts.arvo(
+          fontSize: 50,
+          fontWeight: FontWeight.w400
+      ),
+      headline4: GoogleFonts.arvo(
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25
+      ),
+      headline5: GoogleFonts.arvo(
+          fontSize: 25,
+          fontWeight: FontWeight.w400
+      ),
+      headline6: GoogleFonts.arvo(
+          fontSize: 21,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.15
+      ),
+      subtitle1: GoogleFonts.arvo(
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.15
+      ),
+      subtitle2: GoogleFonts.arvo(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1
+      ),
+      bodyText1: GoogleFonts.sourceSansPro(
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5
+      ),
+      bodyText2: GoogleFonts.sourceSansPro(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25
+      ),
+      button: GoogleFonts.sourceSansPro(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 1.25
+      ),
+      caption: GoogleFonts.sourceSansPro(
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.4
+      ),
+      overline: GoogleFonts.sourceSansPro(
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 1.5
+      ),
+    )
   );
 }
