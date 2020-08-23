@@ -1,7 +1,11 @@
+import 'dart:math';
+
+import 'package:barcode_scan/barcode_scan.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:qrscan/qrscan.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class JoinActivityPage extends StatefulWidget {
   @override
@@ -19,7 +23,18 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
   @override
   void initState() {
     textController = TextEditingController();
+
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    Object args = ModalRoute.of(context).settings.arguments;
+
+    if (args is Map<String, String>) {
+      if (args.containsKey("code")) textController.text = args["code"];
+    }
+    super.didChangeDependencies();
   }
 
   @override
@@ -45,31 +60,67 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
                 if (_isLoading) SizedBox(height: 15,),
                 Form(
                   key: _formKey,
-                  child: TextFormField(
-                    controller: textController,
-                    textCapitalization: TextCapitalization.characters,
-                    validator: (id) => _validID ? null : "Invalid Code",
-                    onChanged: (id) => _activityID = id,
-                    decoration: InputDecoration(
-                      labelText: "Activity Code",
-                      border: OutlineInputBorder(),
-                      prefixIcon: IconButton(
-                        icon: Icon(Icons.center_focus_weak),
-                        onPressed: () async {
-                          String qr = await scan();
-                          if (qr.startsWith("meetboard:")) textController.text = qr.substring("meetboard:".length);
-                        },
+                  child: Flex(
+                    direction: Axis.horizontal,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Flexible(
+                        flex: 6,
+                        child: TextFormField(
+                          controller: textController,
+                          textCapitalization: TextCapitalization.characters,
+                          validator: (id) => _validID ? null : "Invalid Code",
+                          onChanged: (id) => _activityID = id,
+                          decoration: InputDecoration(
+                            labelText: "Activity Code",
+                            filled: true,
+                          ),
+                        ),
+                      ),
+                      Spacer(),
+                      Expanded(
+                        flex: 3,
+                          child: Builder(
+                              builder: (context) {
+                                double buttonHeight = 50;
+
+                                return Padding(
+                                  padding: EdgeInsets.only(top: max(0, (62 - buttonHeight) / 2)),
+                                  child: SizedBox(
+                                    child: RaisedButton(
+                                      child: Text("JOIN",),
+                                      onPressed: !_isLoading ? _onPressJoinButton : null,
+                                      color: Theme
+                                          .of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                                    height: buttonHeight,
+                                  ),
+                                );
+                              }
+                          )
                       )
-                    ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 15,),
-                Flex(
-                    direction: Axis.horizontal,
-                    children: <Widget>[
-                      Expanded(child: RaisedButton(child: Text("Join!"), onPressed: _join, color: Theme.of(context).colorScheme.primary ,))
-                    ],
-                )
+                SizedBox(height: 20,),
+                Builder(builder: (context) => Flex(
+                  direction: Axis.horizontal,
+                  children: <Widget>[
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: OutlineButton.icon(
+                          label: Text("SCAN QR CODE",),
+                          icon: Icon(MdiIcons.qrcodeScan),
+                          onPressed: () => !_isLoading ? _scanQRCode(context) : null,
+                          borderSide: BorderSide(color: !_isLoading ? Theme.of(context).colorScheme.primary : Colors.grey),
+                        ),
+                      ),
+                    ),
+                  ],
+                ))
               ],
             ),
           ),
@@ -78,23 +129,58 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
     );
   }
 
-  void _join() async {
-    if (_isLoading) return;
+  void _scanQRCode(BuildContext context) async {
+    ScanResult result = await BarcodeScanner.scan(
+      options: ScanOptions(restrictFormat: [BarcodeFormat.qr])
+    );
 
+    try {
+      Uri uri = (await FirebaseDynamicLinks.instance.getDynamicLink(Uri.parse(result.rawContent))).link;
+
+      if(uri.host == "meetboard" && uri.path == "/activities/join" && uri.queryParameters.containsKey("code")) {
+        _join(uri.queryParameters["code"]);
+      } else {
+        Scaffold.of(context).showSnackBar(SnackBar(
+          content: Text("Invalid QR code!"),
+        ));
+      }
+    } catch(e) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text("Error decoding QR code!"),
+      ));
+    }
+  }
+
+  void _onPressJoinButton() async {
     _unfocus();
+
     setState(() {
       _isLoading = true;
     });
-    if (await _validateID()) {
-      bool worked = true;
 
-      try {
-        await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({"id": _activityID});
-      }  catch(e) {
-        worked = false;
-      }
-      Navigator.pop(context, worked);
+    if (await _validateID()) {
+      _join(_activityID);
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  void _join(String id) async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+    bool worked = true;
+
+    try {
+      await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({"id": id});
+    }  catch(e) {
+      worked = false;
+    }
+    Navigator.pop(context, worked);
     setState(() {
       _isLoading = false;
     });

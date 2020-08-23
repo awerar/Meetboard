@@ -27,23 +27,6 @@ class PeopleTab extends StatelessWidget {
 
               return Column(
                   children: [
-                    Flex(
-                      direction: Axis.horizontal,
-                      children: <Widget>[
-                        Expanded(
-                          child: Builder(
-                            builder: (context) => RaisedButton.icon(
-                                icon: Icon(Icons.person_add),
-                                label: Text("Invite People"),
-                                onPressed: () => _invitePeople(context),
-                                color: Theme.of(context).colorScheme.primary
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Divider(),
-                    SizedBox(height: 20),
                     _buildSubtitle("Coming – ${peopleComing.length}"),
                     UserColumn(peopleComing, user.uid, (u) => true),
                     SizedBox(height: 20,),
@@ -64,27 +47,6 @@ class PeopleTab extends StatelessWidget {
 
   Widget _buildSubtitle(String text) {
     return Align(child: Builder(builder: (context) => Text(text, style: Theme.of(context).textTheme.subtitle2.copyWith(color: Colors.grey),)), alignment: Alignment.centerLeft,);
-  }
-
-  void _invitePeople(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        title: Text("Invite People"),
-        content: IntrinsicHeight(
-          child: Center(
-            child: SizedBox.fromSize(
-              size: Size.square(100),
-              child: QrImage(
-                data: "meetboard:" + activity.id,
-                padding: EdgeInsets.all(0),
-              ),
-            ),
-          ),
-        ),
-      )
-    );
   }
 }
 

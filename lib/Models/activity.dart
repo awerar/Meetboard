@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/cupertino.dart';
 
 class Activity {
@@ -40,6 +41,19 @@ class Activity {
 
   DocumentReference getUserDataDocument(String uid) {
     return activityDocument.collection("users").document(uid);
+  }
+
+  DynamicLinkParameters getInviteLinkParams() {
+    return DynamicLinkParameters(
+      link: Uri.parse("http://meetboard/activities/join?code=$id"),
+      uriPrefix: "https://meetboard.page.link",
+      androidParameters: AndroidParameters(
+        packageName: "awerar.meetboard",
+      ),
+      iosParameters: IosParameters(
+        bundleId: "awerar.meetboard"
+      ),
+    );
   }
 }
 
