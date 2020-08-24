@@ -126,6 +126,11 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
             )),
           ),
           ListTile(
+            title: Text("Activity Code"),
+            leading: Icon(MdiIcons.key),
+            onTap: () => _inviteWithCode(context),
+          ),
+          ListTile(
             title: Text("Link"),
             leading: Icon(MdiIcons.link),
             onTap: _inviteWithLink,
@@ -152,6 +157,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        title: Center(child: Text("QR Code")),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -164,6 +170,8 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
                 ),
               ),
             ),
+            SizedBox(height: 10,),
+            Text("Scan from within the app, or using a QR scanner", textAlign: TextAlign.center,)
           ],
         ),
         actions: <Widget>[
@@ -184,6 +192,10 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
 
   void _inviteWithLink() async {
     Share.text("Invitation Code", (await activityReference.value.getInviteLinkParams().buildShortLink()).shortUrl.toString(), "text/plain");
+  }
+
+  void _inviteWithCode(BuildContext context) {
+    Share.text("Activity Code", activityReference.value.id, "text/plain");
   }
 
   Map<String, SettingsField> _getSettings() {
