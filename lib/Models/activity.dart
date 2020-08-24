@@ -53,6 +53,9 @@ class Activity {
       iosParameters: IosParameters(
         bundleId: "awerar.meetboard"
       ),
+      dynamicLinkParametersOptions: DynamicLinkParametersOptions(
+        shortDynamicLinkPathLength: ShortDynamicLinkPathLength.unguessable
+      )
     );
   }
 }

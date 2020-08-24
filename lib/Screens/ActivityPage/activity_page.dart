@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:esys_flutter_share/esys_flutter_share.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -88,7 +89,8 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
                     onPressed: () => _showInviteSheet(context),
                     icon: Icon(Icons.person_add),
                   ),
-                )
+                ),
+                SizedBox(width: 7.5,),
               ],
               bottom: TabBar(
                 controller: tabController,
@@ -124,9 +126,9 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
             )),
           ),
           ListTile(
-            title: Text("Activity Code"),
-            leading: Icon(MdiIcons.key),
-            onTap: _inviteWithActivityCode,
+            title: Text("Link"),
+            leading: Icon(MdiIcons.link),
+            onTap: _inviteWithLink,
           ),
           ListTile(
             title: Text("QR Code"),
@@ -168,7 +170,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
           FlatButton(child: Text("Share"), onPressed: () => _shareQRCode(qrKey),),
           FlatButton(child: Text("Done"), onPressed: () => Navigator.of(context).pop(),),
         ],
-      )
+      ),
     );
   }
 
@@ -180,8 +182,8 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
     Share.file('${activityReference.value.name} Invitation QR Code', '${activityReference.value.name.replaceAll(" ", "_")}_QR.png', pngBytes, 'image/png',);
   }
 
-  void _inviteWithActivityCode() {
-
+  void _inviteWithLink() async {
+    Share.text("Invitation Code", (await activityReference.value.getInviteLinkParams().buildShortLink()).shortUrl.toString(), "text/plain");
   }
 
   Map<String, SettingsField> _getSettings() {
