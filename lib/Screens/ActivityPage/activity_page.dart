@@ -22,6 +22,8 @@ import 'package:meetboard/themes.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import 'about_tab.dart';
+
 class ActivityPage extends StatefulWidget {
   static const String routeName = "/view_activity_page";
 
@@ -95,7 +97,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
               bottom: TabBar(
                 controller: tabController,
                 tabs: <Widget>[
-                  Tab(icon: Icon(Icons.info), text: "Info",),
+                  Tab(icon: Icon(MdiIcons.information), text: "About",),
                   Tab(icon: Icon(Icons.people), text: "People",),
                   Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
                   Tab(icon: Icon(Icons.settings), text: "Settings",),
@@ -105,7 +107,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
             body: TabBarView(
                 controller: tabController,
                 children: <Widget>[
-                  Container(),
+                  AboutTab(activity, _user, tabController),
                   PeopleTab(activity, _user),
                   Container(),
                   SettingsTab(_user, activity),
