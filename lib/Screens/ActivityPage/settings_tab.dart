@@ -2,8 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/activity.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Models/settings_model.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:provider/provider.dart';

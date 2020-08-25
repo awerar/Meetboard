@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/Models/activity.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
-import 'package:meetboard/Models/activity_preview.dart';
 import 'package:provider/provider.dart';
 
 class EditActivityPage extends StatefulWidget {

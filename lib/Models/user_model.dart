@@ -15,7 +15,11 @@ class UserModel extends ChangeNotifier {
 
   GlobalKey<NavigatorState> _navigatorKey;
 
+  static UserModel instance;
+
   UserModel(this._navigatorKey) {
+    instance = this;
+
     _initializeUser();
   }
 

@@ -1,0 +1,9 @@
+analyzer:
+  exclude:
+    - "lib/Screens/ActivityPage/about_tab.dart"
+    - "lib/Screens/ActivityPage/activity_page.dart"
+    - "lib/Screens/ActivityPage/people_tab.dart"
+    - "lib/Screens/ActivityPage/settings_tab.dart"
+    - "lib/Screens/EditActivityPage/edit_activity_page.dart"
+    - "lib/Screens/MainPage/main_page.dart"
+    - "lib/main.dart"

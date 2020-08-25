@@ -11,8 +11,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:meetboard/Models/activity.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Models/settings_model.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:meetboard/Screens/ActivityPage/settings_tab.dart';

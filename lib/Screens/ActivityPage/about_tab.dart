@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/activity.dart';
 import 'package:meetboard/Models/settings_model.dart';
 import 'package:provider/provider.dart';
 

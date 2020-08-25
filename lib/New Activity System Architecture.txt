@@ -1,0 +1,109 @@
+New Activity System
+
+//Manages a list of ActivityListners, and previews
+class ActivityListModel with ChangeNotifier {
+	static ActivityListModel instance
+	
+	Map<String, ActivityPreviewSnapshot> _previews
+	
+	Map<String, ActivityListener> activityListners
+	Map<String, List<void Function(ActivitySnapshot)>> 
+	
+	readonly List<ActivityPreviewSnapshot> previews
+	readonly List<String> activityIDs
+	
+	//Wrapper for create cloud function
+	void create(String name, DateTime time)
+	
+	//Wrapper for join cloud function
+	void join()
+}
+
+//Manages a reference to activity data on firebase
+class ActivityReference(this.id) {
+	String id
+
+	//Starts listening to this activity
+	ActivitySubscription listen(void Function(ActivitySnapshot))
+	
+	ActivitySnapshot tryGetCurrentSnapshot()
+	
+	void updateName(String newName)
+	void updateTime(DateTime newTime)
+	void removeUser(String uid)
+	void addUser(String uid)
+}
+
+
+//Notifies listners whenever the latestSnapshot changes
+class ActivityListener(this.ref) with ChangeNotifier {
+	ActivityReference ref
+	ActivitySnapshot _latestFireStoreSnapshot
+	ActivitySnapshot _latestSnapshot
+	
+	getter ActivitySnapshot latestSnapshot
+	
+	LocalValue<String> localName
+	LocalValue<DateTime> localTime
+	LocalValue<List<?>> removedUsers
+	LocalValue<List<?>> addedUsers
+	
+	//Notifies listners and caches the new snapshot
+	void activityChanged()
+	
+	//Combines the last snapshot and local data to get the theoretical database snapshot
+	ActivitySnapshot _getLatestSnapshot()
+	
+	void startDatabaseListen()
+	void stopDatabaseListen()
+}
+
+
+//Manages a local value, and notifies listner listners
+class LocalValue<T> {
+	ActivityListener listner
+	T value
+	
+	T getValue()
+	void updateValue(T/null Function(T))
+}
+
+
+//Rebuilds whenever an activity changes
+Widget ActivityBuilder {
+	Widget builder(ActivitySnapshot)
+	ActivityReference activityReference
+}
+
+
+//Stores data of a snapshot of an activity
+class ActivitySnapshot {
+	readonly UserDataSnapshot currentUser
+
+	readonly String name
+	readonly List<UserDataSnapshot> users
+	readonly DateTime time
+	readonly ActivityReference ref
+}
+
+
+//Stores data of a user in an activity
+class UserDataSnapshot {
+	readonly bool coming
+	readonly String username
+	readonly String uid
+}
+
+
+//Rebuilds when the previews change
+Widget ActivityPreviewListBuilder {
+	Widget builder(List<ActivityPreviewSnapshot>)
+}
+
+
+class ActivityPreviewSnapshot {
+	readonly String name
+	readonly DateTime time
+	readonly ActivityReference ref
+	readonly bool coming
+}
