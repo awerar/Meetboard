@@ -1,8 +1,9 @@
 import 'dart:collection';
 import 'dart:core';
+import 'dart:html';
 
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivityListener.dart';
+import 'package:meetboard/ActivitySystem/ActivityHandler.dart';
 import 'package:meetboard/ActivitySystem/ActivityPreviewSnapshot.dart';
 import 'package:meetboard/ActivitySystem/ActivityReference.dart';
 import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
@@ -16,13 +17,10 @@ class ActivityListModel with ChangeNotifier {
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
   List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
 
-  Map<ActivityReference, List<OnActivityChangeFunction>> _onChangeFunctions = Map();
-  Map<ActivityReference, ActivityHandler> _activityListeners = Map();
+  Map<ActivityReference, List<ActivitySubscription>> _activitySubscriptions = Map();
+  Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
-  HashSet<ActivityReference> _globalActivities = HashSet(),
-      _localAddedActivities = HashSet(),
-      _localRemovedActivities = HashSet(),
-      _trackedActivities = HashSet();
+  HashSet<ActivityReference> _trackedActivities = HashSet();
   HashSet<ActivityReference> get trackedActivities => HashSet.from(_trackedActivities);
 
   ActivityListModel() {
@@ -32,56 +30,60 @@ class ActivityListModel with ChangeNotifier {
 
         if (change.document.exists) {
           //Added preview
-          _globalActivities.add(ref);
-          if(_localAddedActivities.contains(ref)) _localAddedActivities.remove(ref);
+          if (!trackedActivities.contains(ref)) {
+            _startTrackActivity(ref, ActivityHandler.fromDocumentSnapshot(ref, change.document));
+          }
         } else {
           //Removed preview
-          _globalActivities.remove(ActivityReference(change.document.documentID));
-          if(_localRemovedActivities.contains(ref)) _localRemovedActivities.remove(ref);
+          _stopTrackActivity(ref);
         }
       });
-
-      onTrackedActivitiesChanged();
     });
   }
 
   ActivitySubscription listenForActivityChange(ActivityReference ref, OnActivityChangeFunction onChange) {
     assert(trackedActivities.contains(ref));
 
-    _onChangeFunctions[ref].add(onChange);
-    return ActivitySubscription(() => _onChangeFunctions[ref].remove(onChange));
+    ActivitySubscription subscription = ActivitySubscription((instance) => _activitySubscriptions[ref].remove(instance));
+    _activitySubscriptions[ref].add(subscription);
+    return subscription;
   }
 
-  void onTrackedActivitiesChanged() {
-    HashSet<ActivityReference> prevTrackedActivities = _trackedActivities;
-    _trackedActivities = HashSet.from(_globalActivities)..removeAll(_localRemovedActivities)..addAll(_localAddedActivities);
+  void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {
+    assert(!trackedActivities.contains(ref));
+    _trackedActivities.add(ref);
 
-    Iterable<ActivityReference> newActivities = _trackedActivities.where((ref) => !prevTrackedActivities.contains(ref));
-    Iterable<ActivityReference> oldActivities = prevTrackedActivities.where((ref) => !trackedActivities.contains(ref));
-
-    newActivities.forEach((ref) {
-
+    _activityHandlers[ref] = handler;
+    _activitySubscriptions[ref] = [];
+    _previews[ref] = handler.latestSnapshot.getPreview();
+    listenForActivityChange(ref, (snapshot) {
+      _previews[ref] = snapshot.getPreview();
     });
+  }
 
-    oldActivities.forEach((ref) {
+  void _stopTrackActivity(ActivityReference ref) {
+    assert(trackedActivities.contains(ref));
+    _trackedActivities.remove(ref);
 
-    });
-
-    notifyListeners();
+    _activityHandlers[ref].dispose();
+    _activityHandlers.remove(ref);
+    _activitySubscriptions[ref].toList().forEach((subscription) => subscription.unsubscribe());
+    _previews.remove(ref);
   }
 }
 
 class ActivitySubscription {
-  bool _hasStopped;
+  OnActivityChangeFunction onChange;
 
-  final void Function() _stop;
+  bool _subscribed = true;
+  final void Function(ActivitySubscription instance) _unsubscribe;
 
-  ActivitySubscription(this._stop);
+  ActivitySubscription(this._unsubscribe);
 
-  void stop() {
-    if (!_hasStopped) {
-      _hasStopped = true;
-      _stop();
+  void unsubscribe() {
+    if (_subscribed) {
+      _subscribed = false;
+      _unsubscribe(this);
     }
   }
 }

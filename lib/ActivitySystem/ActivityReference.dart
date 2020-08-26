@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
 import 'package:meetboard/Models/ActivityListModel.dart';
@@ -10,6 +11,8 @@ class ActivityReference {
   ActivitySubscription listen(OnActivityChangeFunction onChange) {
     return ActivityListModel.instance.listenForActivityChange(this, onChange);
   }
+
+  DocumentReference get activityDocument => Firestore.instance.collection("activities").document(id);
 
   @override
   int get hashCode => id.hashCode;

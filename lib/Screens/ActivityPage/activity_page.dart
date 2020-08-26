@@ -32,7 +32,7 @@ class ActivityPage extends StatefulWidget {
 class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderStateMixin {
   ValueReference<Activity> activityReference;
   String _userUID;
-  UserActivityData get _user => activityReference.value.users[_userUID];
+  UserActivityData get _user => activityReference.value.localUsers[_userUID];
 
   TabController tabController;
 
@@ -56,7 +56,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
     try {
       _userUID = Provider.of<UserModel>(context, listen: false).user.uid;
     } catch (e) {
-      _userUID = activityReference.value.users.keys.first;
+      _userUID = activityReference.value.localUsers.keys.first;
     }
 
     if(settings == null) settings = SettingsModel(_getSettings());
@@ -187,7 +187,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
     var image = await boundary.toImage();
     ByteData byteData = await image.toByteData(format: ImageByteFormat.png);
     Uint8List pngBytes = byteData.buffer.asUint8List();
-    Share.file('${activityReference.value.name} Invitation QR Code', '${activityReference.value.name.replaceAll(" ", "_")}_QR.png', pngBytes, 'image/png',);
+    Share.file('${activityReference.value.localName} Invitation QR Code', '${activityReference.value.localName.replaceAll(" ", "_")}_QR.png', pngBytes, 'image/png',);
   }
 
   void _inviteWithLink() async {
@@ -211,7 +211,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
           }
       ),
       "name": SettingsField<String>(
-        initialValue: activityReference.value.name,
+        initialValue: activityReference.value.localName,
         getSaveData: (name, settings) {
           return {
             activityReference.value.activityDocument: {
@@ -221,7 +221,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
         }
       ),
       "time": SettingsField<TimeOfDay>(
-          initialValue: TimeOfDay.fromDateTime(activityReference.value.time),
+          initialValue: TimeOfDay.fromDateTime(activityReference.value.localTime),
           getSaveData: (time, settings) {
             DateTime date = settings.getValue<DateTime>("date");
             DateTime activityTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
@@ -250,7 +250,7 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
   }
 
   DateTime _calculateActivityDate() {
-    DateTime date = activityReference.value.time;
+    DateTime date = activityReference.value.localTime;
     return date.subtract(Duration(hours: date.hour, minutes: date.minute, seconds: date.second, milliseconds: date.millisecond, microseconds: date.microsecond));
   }
 }

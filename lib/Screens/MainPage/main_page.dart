@@ -41,7 +41,7 @@ class MainPage extends StatelessWidget {
       bool first = true;
       for(ActivityPreview activity in activities) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-        int dayDiff = activity.time.difference(today).inDays;
+        int dayDiff = activity.localTime.difference(today).inDays;
 
         bool newCategory = false;
         while(dayDiff > categoryDays[category] && category < categoryDays.length) {
@@ -144,13 +144,13 @@ class _ActivityCardState extends State<ActivityCard> {
             ),
             Flexible(
                 child: ListTile(
-                  title: Hero(child: Text(widget.activityPreview.name, ), tag: widget.activityPreview.hashCode.toString() + "Title",),
+                  title: Hero(child: Text(widget.activityPreview.localName, ), tag: widget.activityPreview.hashCode.toString() + "Title",),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(_dateFormat.format(widget.activityPreview.time)),
-                      ActivityTimeText(time: widget.activityPreview.time,)
+                      Text(_dateFormat.format(widget.activityPreview.localTime)),
+                      ActivityTimeText(time: widget.activityPreview.localTime,)
                     ],
                   ),
                   trailing: Text(widget.activityPreview.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),

@@ -27,9 +27,9 @@ class AboutTab extends StatelessWidget {
               return Flex(
                 direction: Axis.horizontal,
                 children: <Widget>[
-                  Expanded(child: Center(child: Text("${activity.users.values.where((element) => (element.coming && element.uid != user.uid) || (coming && element.uid == user.uid)).length} coming", style: style.copyWith(color: green),))),
-                  Expanded(child: Center(child: Text("${activity.users.length} in total", style: style,))),
-                  Expanded(child: Center(child: Text("${activity.users.values.where((element) => (!element.coming && element.uid != user.uid) || (!coming && element.uid == user.uid)).length} not coming", style: style.copyWith(color: red),))),
+                  Expanded(child: Center(child: Text("${activity.localUsers.values.where((element) => (element.coming && element.uid != user.uid) || (coming && element.uid == user.uid)).length} coming", style: style.copyWith(color: green),))),
+                  Expanded(child: Center(child: Text("${activity.localUsers.length} in total", style: style,))),
+                  Expanded(child: Center(child: Text("${activity.localUsers.values.where((element) => (!element.coming && element.uid != user.uid) || (!coming && element.uid == user.uid)).length} not coming", style: style.copyWith(color: red),))),
                 ],
               );
             }

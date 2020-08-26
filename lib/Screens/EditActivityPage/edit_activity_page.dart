@@ -28,9 +28,9 @@ class _EditActivityPageState extends State<EditActivityPage> {
       _settings = args;
 
       if (_settings.baseActivity != null) {
-        _name = _settings.baseActivity.name;
-        _date = _settings.baseActivity.time;
-        _time = TimeOfDay.fromDateTime(_settings.baseActivity.time);
+        _name = _settings.baseActivity.localName;
+        _date = _settings.baseActivity.localTime;
+        _time = TimeOfDay.fromDateTime(_settings.baseActivity.localTime);
         _hasTriedSubmitting = true;
       }
     }
@@ -157,9 +157,9 @@ class _EditActivityPageState extends State<EditActivityPage> {
         _creating = true;
       });
       if (_settings.baseActivity == null) {
-        await _settings.handleNewActivity(await Provider.of<ActivityListModel>(context).createActivity(name: _name, time: activityTime));
+        await _settings.handleNewActivity(await Provider.of<ActivityListModel>(context).createActivity(localName: _name, localTime: activityTime));
       } else {
-        Activity newActivity = _settings.baseActivity.copyWith(name: _name, time: activityTime);
+        Activity newActivity = _settings.baseActivity.copyWith(localName: _name, localTime: activityTime);
         await _settings.handleNewActivity(newActivity);
       }
       Navigator.of(context).pop();

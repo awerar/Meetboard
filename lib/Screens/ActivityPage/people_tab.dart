@@ -21,8 +21,8 @@ class PeopleTab extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           child: Consumer<SettingsModel>(
             builder: (BuildContext context, SettingsModel settings, Widget child) {
-              List<UserActivityData> peopleComing =  activity.users.values.where((element) => _willCome(element, settings)).toList();
-              List<UserActivityData> peopleNotComing =  activity.users.values.where((element) => !_willCome(element, settings)).toList();
+              List<UserActivityData> peopleComing =  activity.localUsers.values.where((element) => _willCome(element, settings)).toList();
+              List<UserActivityData> peopleNotComing =  activity.localUsers.values.where((element) => !_willCome(element, settings)).toList();
 
               return Column(
                   children: [
