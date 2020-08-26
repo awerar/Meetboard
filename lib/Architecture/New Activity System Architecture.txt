@@ -1,16 +1,20 @@
 New Activity System
 
-//Manages a list of ActivityListners, and previews
+//Manages a list of ActivityListners, and updates previews
 class ActivityListModel with ChangeNotifier {
 	static ActivityListModel instance
 	
 	Map<String, ActivityPreviewSnapshot> _previews
+   	readonly List<ActivityPreviewSnapshot> previews
 	
 	Map<String, ActivityListener> activityListners
 	Map<String, List<void Function(ActivitySnapshot)>> 
 	
-	readonly List<ActivityPreviewSnapshot> previews
-	readonly List<String> activityIDs
+    Set<ActivityReference> globalActivities, addedActivities, removedActivities
+    Set<ActivityReference> _trackedActivities
+	readonly Set<ActivityReference> trackedActivities
+    
+    void onTrackedActivitiesUpdate()
 	
 	//Wrapper for create cloud function
 	void create(String name, DateTime time)
@@ -84,6 +88,8 @@ class ActivitySnapshot {
 	readonly List<UserDataSnapshot> users
 	readonly DateTime time
 	readonly ActivityReference ref
+    
+    ActivityPreviewSnapshot getPreview()
 }
 
 
