@@ -18,6 +18,5 @@ class UserDataSnapshot {
   }
 
   @override
-  // TODO: implement hashCode
   int get hashCode => uid.hashCode;
 }
