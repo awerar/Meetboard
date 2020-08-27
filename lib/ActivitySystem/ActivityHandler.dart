@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,24 +12,20 @@ import 'package:meetboard/ActivitySystem/UserDataSnapshot.dart';
 class ActivityHandler with ChangeNotifier {
   final ActivityReference ref;
 
-  bool _listeningToUpdates = false;
+  StreamSubscription _documentListener;
+  bool get listeningToUpdates => _documentListener != null;
 
   ActivitySnapshot _latestSnapshot;
   ActivitySnapshot get latestSnapshot => _latestSnapshot;
 
-  String globalName;
-  DateTime globalTime;
-  HashSet<UserDataSnapshot> globalUsers;
+  final ActivityValue<String> name;
+  final ActivityValue<DateTime> time;
+  final ActivityValue<HashSet<UserDataSnapshot>> users;
 
-  LocalValue<String> localName;
-  LocalValue<DateTime> localTime;
-  LocalValue<HashSet<UserDataSnapshot>> localUsers;
-
-  ActivityHandler._fromLocalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) {
-    this.localName = LocalValue(this, name);
-    this.localTime = LocalValue(this, time);
-    this.localUsers = LocalValue(this, HashSet.from(users));
-  }
+  ActivityHandler._fromLocalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
+    name = ActivityValue.local(this, name),
+    time = ActivityValue.local(this, time),
+    users = ActivityValue.local(this, HashSet.from(users));
 
   ActivityHandler.fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromLocalValues(
     ref,
@@ -54,57 +51,74 @@ class ActivityHandler with ChangeNotifier {
   }
 
   void onActivityChanged() {
-    _latestSnapshot = _getLatestSnapshot();
+    _latestSnapshot = ActivitySnapshot(
+      ref: ref,
+      name: name.currentValue,
+      time: time.currentValue,
+      users: users.currentValue.toList()
+    );
+
     notifyListeners();
   }
 
-  ActivitySnapshot _getLatestSnapshot() {
-    if (_listeningToUpdates) {
-      assert(localName != null);
-      assert(localTime != null);
-      assert(localUsers != null);
-
-      return ActivitySnapshot(
-        ref: ref,
-        name: localName.value,
-        time: localTime.value,
-        users: localUsers.value.toList()
-      );
-    } else {
-      assert(globalName != null);
-      assert(globalTime != null);
-      assert(globalUsers != null);
-
-      return ActivitySnapshot(
-        ref: ref,
-        name: localName != null ? localName.value : globalName,
-        time: localTime != null ? localTime.value : globalTime,
-        users: (localUsers != null ? localUsers.value : globalUsers).toList()
-      );
-    }
-  }
-
   void _startListen() {
-    assert(!_listeningToUpdates);
-    _listeningToUpdates = true;
+    assert(!listeningToUpdates);
+
+    _documentListener = ref.activityDocument.snapshots().listen((doc) {
+
+    });
   }
 
   void _stopListen() {
-    assert(_listeningToUpdates);
-    _listeningToUpdates = false;
+    assert(listeningToUpdates);
+
+    _documentListener.cancel();
+    _documentListener = null;
   }
 }
 
-class LocalValue<T> {
-  final ActivityHandler _listener;
-  T _value;
+class ActivityValue<T> {
+  final ActivityHandler _handler;
 
-  T get value => _value;
+  T get currentValue => _hasLocalValue ? _localValue : _globalValue;
+  bool get _hasLocalValue {
+    if(_handler.listeningToUpdates) {
+      assert(_globalValue != null);
+      return _localValue != null;
+    } else {
+      assert(_localValue != null);
+      return true;
+    }
+  }
 
-  LocalValue(this._listener, this._value);
+  T _globalValue;
+  T _localValue;
 
-  void updateValue(T Function(T currentValue) modifier) {
-    T newValue = modifier(_value);
-    if (newValue != null) _value = newValue;
+  ActivityValue.local(ActivityHandler handler, T value) :
+        _handler = handler,
+        _localValue = value;
+
+  ActivityValue.global(ActivityHandler handler, T value) :
+        _handler = handler,
+        _globalValue = value,
+        _localValue = value;
+
+  void setGlobalValue(T value) {
+    _globalValue = value;
+
+    _handler.onActivityChanged();
+  }
+
+  void setLocalValue(T value) {
+    _localValue = value;
+
+    _handler.onActivityChanged();
+  }
+
+  void updateLocalValue(T Function (T val) modifier) {
+    T res = modifier(_localValue);
+    if (res != null) _localValue = res;
+
+    _handler.onActivityChanged();
   }
 }

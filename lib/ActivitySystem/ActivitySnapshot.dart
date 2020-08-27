@@ -16,6 +16,11 @@ class ActivitySnapshot {
   ActivitySnapshot({@required this.ref, @required this.name, @required this.time, @required List<UserDataSnapshot> users}) : this.users = Map.fromIterable(users, key: (u) => u.uid);
 
   ActivityPreviewSnapshot getPreview() {
-
+    return ActivityPreviewSnapshot(
+      ref: ref,
+      coming: currentUser.coming,
+      name: name,
+      time: time
+    );
   }
 }
