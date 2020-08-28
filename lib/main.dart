@@ -1,5 +1,6 @@
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page.dart';
 import 'package:meetboard/themes.dart';
@@ -16,22 +17,20 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     timeDilation = 1;
 
+    ActivityListModel activityListModel = ActivityListModel();
+
     UserModel userModel = UserModel(navigatorKey);
-    ActivityListModel activityListModel = ActivityListModel(userModel);
 
     _handleDynamicLinks();
 
-    return MultiProvider(
+    return Provider.value(
+      value: userModel,
       child: MaterialApp(
         navigatorKey: navigatorKey,
         title: "Meetboard",
         home: MainPage(),
         theme: getTheme(),
       ),
-      providers: [
-        ChangeNotifierProvider.value(value: userModel),
-        ChangeNotifierProvider.value(value: activityListModel)
-      ],
     );
   }
 

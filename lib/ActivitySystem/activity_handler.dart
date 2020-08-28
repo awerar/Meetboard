@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:html';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -21,25 +22,31 @@ class ActivityHandler with ChangeNotifier {
   ActivitySnapshot _latestSnapshot;
   ActivitySnapshot get latestSnapshot => _latestSnapshot;
 
-  final ActivityValue<String> name;
-  final ActivityValue<DateTime> time;
-  final ActivityUsersValue users;
-  final ActivityValue<bool> coming;
-  List<IActivityValue> get _values => [name, time, users, coming];
+  final ActivityValue<String> _name;
+  final ActivityValue<DateTime> _time;
+  final ActivityUsersValue _users;
+  final ActivityValue<bool> _coming;
+  Map<String, IActivityValue> get _valuesMap => {
+    "name": _name,
+    "time": _time,
+    "users": _users,
+    "coming": _coming
+  };
+  List<IActivityValue> get _values => _valuesMap.values.toList();
 
   ActivityHandler._fromLocalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
-    name = ActivityValue.local(name),
-    time = ActivityValue.local(time),
-    users = ActivityUsersValue.local(users.toList()),
-    coming = ActivityValue.local(_parseComing(users)) {
+    _name = ActivityValue.local(name),
+    _time = ActivityValue.local(time),
+    _users = ActivityUsersValue.local(users.toList()),
+    _coming = ActivityValue.local(_parseComing(users)) {
     _linkValues();
   }
 
   ActivityHandler._fromGlobalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
-        name = ActivityValue.global(name),
-        time = ActivityValue.global(time),
-        users = ActivityUsersValue.global(users.toList()),
-        coming = ActivityValue.global(_parseComing(users)) {
+        _name = ActivityValue.global(name),
+        _time = ActivityValue.global(time),
+        _users = ActivityUsersValue.global(users.toList()),
+        _coming = ActivityValue.global(_parseComing(users)) {
     _linkValues();
   }
 
@@ -78,12 +85,17 @@ class ActivityHandler with ChangeNotifier {
   void _onActivityChanged() {
     _latestSnapshot = ActivitySnapshot(
       ref: ref,
-      name: name.currentValue,
-      time: time.currentValue,
-      users: users.currentValue.toList()
+      name: _name.currentValue,
+      time: _time.currentValue,
+      users: _users.currentValue.toList()
     );
 
     notifyListeners();
+  }
+
+  Future<void> write(_ActivityWriterWriteFunc writeFunc) {
+    ActivityWriter writer = ActivityWriter(this, writeFunc);
+    return writer.write();
   }
 
   void startListen() {
@@ -91,11 +103,11 @@ class ActivityHandler with ChangeNotifier {
 
     _documentListener = ref.activityDocument.snapshots().listen((doc) {
       Iterable<UserDataSnapshot> globalUsers = _parseUsers(doc.data["users"]);
-      users.setGlobalUsers(globalUsers);
+      _users.setGlobalUsers(globalUsers);
 
-      name.setGlobalValue(doc.data["name"]);
-      time.setGlobalValue(_parseTimestamp(doc.data["time"]));
-      coming.setGlobalValue(_parseComing(globalUsers));
+      _name.setGlobalValue(doc.data["name"]);
+      _time.setGlobalValue(_parseTimestamp(doc.data["time"]));
+      _coming.setGlobalValue(_parseComing(globalUsers));
     });
   }
 
@@ -116,5 +128,55 @@ class ActivityHandler with ChangeNotifier {
 
   static List<UserDataSnapshot> _parseUsers(Map<String, Map<String, dynamic>> userData) {
     return userData.entries.map((e) => UserDataSnapshot.fromData(e.key, e.value));
+  }
+}
+
+typedef _ActivityWriterWriteFunc = void Function(ActivityValueWriter<String> name, ActivityValueWriter<DateTime> time, ActivityValueWriter<bool> coming, ActivityUsersValueWriter users);
+
+class ActivityWriter {
+  final ActivityHandler _handler;
+  ActivityReference get ref => _handler.ref;
+
+  final _ActivityWriterWriteFunc _write;
+
+  ActivityWriter(this._handler, this._write);
+
+  Future<void> write() {
+    ActivityValueWriter<String> name = ActivityValueWriter(ref, _handler._name, (val, ref) => FirestoreChange.single(ref.activityDocument, {"name": val}));
+    ActivityValueWriter<DateTime> time = ActivityValueWriter(ref, _handler._time, (val, ref) => FirestoreChange.single(ref.activityDocument, {"time": Timestamp.fromDate(val)}));
+    ActivityValueWriter<bool> coming = ActivityValueWriter(ref, _handler._coming, (val, ref) => FirestoreChange.single(ref.activityDocument.collection("users").document(UserModel.instance.user.uid), {"coming": val}));
+    ActivityUsersValueWriter users = ActivityUsersValueWriter(ref, _handler._users);
+    List<IActivityValueWriter> writers = [name, time, coming, users];
+
+    _write(name, time, coming, users);
+
+    return writers.fold<FirestoreChange>(FirestoreChange.none(), (acc, change) => acc.merge(change.getChanges())).apply();
+  }
+}
+
+class FirestoreChange {
+  final Map<DocumentReference, Map<String, dynamic>> changes;
+
+  FirestoreChange.none() : changes = {};
+  FirestoreChange.single(DocumentReference doc, Map<String, dynamic> data) : changes = { doc: data };
+  FirestoreChange.multiple(this.changes);
+
+  FirestoreChange._merge(FirestoreChange a, FirestoreChange b) :
+        changes = (a.changes)
+          //Adds all entries from B where A doesn't contain that key
+          ..addEntries(b.changes.entries.where((element) => a.changes.containsKey(element.key)))
+          //Merges all data from B with the data from A when they share a key
+          ..entries.where((element) => b.changes.containsKey(element.key)).forEach((element) => element.value.addEntries(b.changes[element.key].entries));
+
+  FirestoreChange merge(FirestoreChange other) {
+    return FirestoreChange._merge(this, other);
+  }
+
+  Future<void> apply() async {
+    var batch = Firestore.instance.batch();
+    for(var entry in changes.entries) {
+      batch.setData(entry.key, entry.value, merge: true);
+    }
+    return batch.commit();
   }
 }

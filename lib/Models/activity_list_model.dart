@@ -9,6 +9,7 @@ import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 typedef OnActivityChangeFunction = void Function(ActivitySnapshot snapshot);
+typedef OnPreviewsChangeFunction = void Function(ActivitySnapshot snapshot);
 
 class ActivityListModel {
   static ActivityListModel instance;
@@ -16,7 +17,10 @@ class ActivityListModel {
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
   List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
 
-  Map<ActivityReference, List<ActivitySubscription>> _activitySubscriptions = Map();
+  StreamController<List<ActivityPreviewSnapshot>> _previewsController = StreamController.broadcast();
+  Stream<List<ActivityPreviewSnapshot>> get previewsStream => _previewsController.stream;
+
+  Map<ActivityReference, StreamController<ActivitySnapshot>> _snapshotControllers = Map();
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
   HashSet<ActivityReference> _trackedActivities = HashSet();
@@ -42,40 +46,10 @@ class ActivityListModel {
     });
   }
 
-  ActivitySubscription listenForActivityChange(ActivityReference ref, OnActivityChangeFunction onChange, {bool startWithLatestSnapshot = true}) {
+  Stream<ActivitySnapshot> getActivityChangeStream(ActivityReference ref) {
     assert(_trackedActivities.contains(ref));
 
-    onChange(_activityHandlers[ref].latestSnapshot);
-    ActivitySubscription subscription = ActivitySubscription((instance) => _activitySubscriptions[ref].remove(instance));
-    _activitySubscriptions[ref].add(subscription);
-    return subscription;
-  }
-
-  Stream<ActivitySnapshot> getActivitySnapshotStream(ActivityReference ref) {
-    ActivitySubscription subscription;
-    StreamController<ActivitySnapshot> controller;
-
-    OnActivityChangeFunction onChange = (snapshot) {
-      controller.add(snapshot);
-    };
-
-    controller = StreamController<ActivitySnapshot>(
-      onPause: () {
-        assert(subscription != null);
-
-        subscription.unsubscribe();
-        subscription = null;
-      },
-      onResume: () {
-        assert(subscription == null);
-
-        subscription = listenForActivityChange(ref, onChange);
-      }
-    );
-
-    subscription = listenForActivityChange(ref, onChange);
-
-    return controller.stream;
+    return _snapshotControllers[ref].stream;
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {
@@ -83,10 +57,20 @@ class ActivityListModel {
     _trackedActivities.add(ref);
 
     _activityHandlers[ref] = handler;
-    _activitySubscriptions[ref] = [];
+
+    StreamController<ActivitySnapshot> controller = StreamController.broadcast();
+
+    _snapshotControllers[ref] = controller;
+    handler.addListener(() {
+      _snapshotControllers[ref].add(handler.latestSnapshot);
+    });
+
     _previews[ref] = handler.latestSnapshot.getPreview();
-    listenForActivityChange(ref, (snapshot) {
+    _onPreviewsChange();
+
+    controller.stream.listen((snapshot) {
       _previews[ref] = snapshot.getPreview();
+      _onPreviewsChange();
     });
   }
 
@@ -94,25 +78,13 @@ class ActivityListModel {
     assert(_trackedActivities.contains(ref));
     _trackedActivities.remove(ref);
 
-    _activityHandlers[ref].dispose();
-    _activityHandlers.remove(ref);
-    _activitySubscriptions[ref].toList().forEach((subscription) => subscription.unsubscribe());
+    (_activityHandlers..[ref].dispose()).remove(ref);
+    (_snapshotControllers..[ref].close()).remove(ref);
     _previews.remove(ref);
+    _onPreviewsChange();
   }
-}
 
-class ActivitySubscription {
-  OnActivityChangeFunction onChange;
-
-  bool _subscribed = true;
-  final void Function(ActivitySubscription instance) _unsubscribe;
-
-  ActivitySubscription(this._unsubscribe);
-
-  void unsubscribe() {
-    if (_subscribed) {
-      _subscribed = false;
-      _unsubscribe(this);
-    }
+  void _onPreviewsChange() {
+    _previewsController.add(previews);
   }
 }
