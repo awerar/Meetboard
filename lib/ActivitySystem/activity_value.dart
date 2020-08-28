@@ -2,8 +2,8 @@ import 'dart:collection';
 
 import 'package:flutter/cupertino.dart';
 
-import 'ActivityHandler.dart';
-import 'UserDataSnapshot.dart';
+import 'activity_handler.dart';
+import 'user_data_snapshot.dart';
 
 abstract class IActivityValue<T> with ChangeNotifier {
   ActivityHandler _handler;

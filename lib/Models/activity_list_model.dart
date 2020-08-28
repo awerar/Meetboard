@@ -1,16 +1,16 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:core';
 
-import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivityHandler.dart';
-import 'package:meetboard/ActivitySystem/ActivityPreviewSnapshot.dart';
-import 'package:meetboard/ActivitySystem/ActivityReference.dart';
+import 'package:meetboard/ActivitySystem/activity_handler.dart';
+import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 typedef OnActivityChangeFunction = void Function(ActivitySnapshot snapshot);
 
-class ActivityListModel with ChangeNotifier {
+class ActivityListModel {
   static ActivityListModel instance;
 
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
@@ -42,12 +42,40 @@ class ActivityListModel with ChangeNotifier {
     });
   }
 
-  ActivitySubscription listenForActivityChange(ActivityReference ref, OnActivityChangeFunction onChange) {
+  ActivitySubscription listenForActivityChange(ActivityReference ref, OnActivityChangeFunction onChange, {bool startWithLatestSnapshot = true}) {
     assert(_trackedActivities.contains(ref));
 
+    onChange(_activityHandlers[ref].latestSnapshot);
     ActivitySubscription subscription = ActivitySubscription((instance) => _activitySubscriptions[ref].remove(instance));
     _activitySubscriptions[ref].add(subscription);
     return subscription;
+  }
+
+  Stream<ActivitySnapshot> getActivitySnapshotStream(ActivityReference ref) {
+    ActivitySubscription subscription;
+    StreamController<ActivitySnapshot> controller;
+
+    OnActivityChangeFunction onChange = (snapshot) {
+      controller.add(snapshot);
+    };
+
+    controller = StreamController<ActivitySnapshot>(
+      onPause: () {
+        assert(subscription != null);
+
+        subscription.unsubscribe();
+        subscription = null;
+      },
+      onResume: () {
+        assert(subscription == null);
+
+        subscription = listenForActivityChange(ref, onChange);
+      }
+    );
+
+    subscription = listenForActivityChange(ref, onChange);
+
+    return controller.stream;
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {

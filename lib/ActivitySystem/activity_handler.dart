@@ -4,12 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivityReference.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
-import 'package:meetboard/ActivitySystem/UserDataSnapshot.dart';
+import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
-import 'ActivityValue.dart';
+import 'activity_value.dart';
 
 //Starts not connected, and can connect and disconnect
 class ActivityHandler with ChangeNotifier {

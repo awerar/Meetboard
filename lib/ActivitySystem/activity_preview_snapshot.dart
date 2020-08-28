@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivityReference.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
 
 class ActivityPreviewSnapshot {
   final String name;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivityPreviewSnapshot.dart';
-import 'package:meetboard/ActivitySystem/ActivityReference.dart';
-import 'package:meetboard/ActivitySystem/UserDataSnapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
+import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 class ActivitySnapshot {

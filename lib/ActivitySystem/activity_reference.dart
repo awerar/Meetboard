@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meetboard/Models/ActivityListModel.dart';
+import 'package:meetboard/Models/activity_list_model.dart';
 
 class ActivityReference {
   final String id;
