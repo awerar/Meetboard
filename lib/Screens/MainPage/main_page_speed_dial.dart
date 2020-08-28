@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
-import 'package:provider/provider.dart';
 
 class MainPageSpeedDial extends StatefulWidget {
 

@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'dart:core';
-import 'dart:html';
 
 import 'package:flutter/material.dart';
 import 'package:meetboard/ActivitySystem/ActivityHandler.dart';

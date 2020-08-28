@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Screens/ActivityPage/settings_tab.dart';
 import 'package:meetboard/utils.dart';
 
 class SettingsModel extends ChangeNotifier {

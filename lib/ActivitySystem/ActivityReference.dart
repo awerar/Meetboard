@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
 import 'package:meetboard/Models/ActivityListModel.dart';
 
 class ActivityReference {
