@@ -20,16 +20,18 @@ class ActivityListModel with ChangeNotifier {
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
   HashSet<ActivityReference> _trackedActivities = HashSet();
-  HashSet<ActivityReference> get trackedActivities => HashSet.from(_trackedActivities);
 
   ActivityListModel() {
+    assert(instance == null);
+    instance = this;
+
     UserModel.instance.userActivityCollection.snapshots().listen((querySnapshot) {
       querySnapshot.documentChanges.forEach((change) {
         ActivityReference ref = ActivityReference(change.document.documentID);
 
         if (change.document.exists) {
           //Added preview
-          if (!trackedActivities.contains(ref)) {
+          if (!_trackedActivities.contains(ref)) {
             _startTrackActivity(ref, ActivityHandler.fromDocumentSnapshot(ref, change.document));
           }
         } else {
@@ -41,7 +43,7 @@ class ActivityListModel with ChangeNotifier {
   }
 
   ActivitySubscription listenForActivityChange(ActivityReference ref, OnActivityChangeFunction onChange) {
-    assert(trackedActivities.contains(ref));
+    assert(_trackedActivities.contains(ref));
 
     ActivitySubscription subscription = ActivitySubscription((instance) => _activitySubscriptions[ref].remove(instance));
     _activitySubscriptions[ref].add(subscription);
@@ -49,7 +51,7 @@ class ActivityListModel with ChangeNotifier {
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {
-    assert(!trackedActivities.contains(ref));
+    assert(!_trackedActivities.contains(ref));
     _trackedActivities.add(ref);
 
     _activityHandlers[ref] = handler;
@@ -61,7 +63,7 @@ class ActivityListModel with ChangeNotifier {
   }
 
   void _stopTrackActivity(ActivityReference ref) {
-    assert(trackedActivities.contains(ref));
+    assert(_trackedActivities.contains(ref));
     _trackedActivities.remove(ref);
 
     _activityHandlers[ref].dispose();

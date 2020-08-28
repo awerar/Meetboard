@@ -18,6 +18,7 @@ class UserModel extends ChangeNotifier {
   static UserModel instance;
 
   UserModel(this._navigatorKey) {
+    assert(instance == null);
     instance = this;
 
     _initializeUser();
