@@ -17,20 +17,22 @@ abstract class IActivityValue<T> with ChangeNotifier {
     _handler = handler;
   }
 
-  T get currentValue;
+  T get _currentValue;
+  bool get hasValue;
+
+  T get currentValue {
+    assert(hasValue);
+    return _currentValue;
+  }
 }
 
 class ActivityValue<T> extends IActivityValue<T> {
-  T get currentValue => _hasLocalValue ? _localValue : _globalValue;
-  bool get _hasLocalValue {
-    if(_handler.listeningToUpdates) {
-      assert(_globalValue != null);
-      return _localValue != null;
-    } else {
-      assert(_localValue != null);
-      return true;
-    }
-  }
+  @override
+  T get _currentValue => _hasLocalValue ? _localValue : _globalValue;
+  bool get _hasLocalValue => _handler.listeningToUpdates ? _localValue != null : true;
+
+  @override
+  bool get hasValue => _hasLocalValue ? _localValue != null : _globalValue != null;
 
   T _globalValue;
   T _localValue;
@@ -60,7 +62,10 @@ class ActivityUsersValue extends IActivityValue<List<UserDataSnapshot>> {
   final HashSet<UserDataSnapshot> _globalUsers, _localAddedUsers, _localRemovedUsers;
 
   @override
-  List<UserDataSnapshot> get currentValue => _handler.listeningToUpdates ?
+  bool get hasValue => _handler.listeningToUpdates ? _globalUsers.length != 0 : _localAddedUsers.length != 0;
+
+  @override
+  List<UserDataSnapshot> get _currentValue => _handler.listeningToUpdates ?
     (HashSet.from(_globalUsers)..addAll(_localAddedUsers)..removeAll(_localRemovedUsers)).toList() :
     _localAddedUsers.toList();
 

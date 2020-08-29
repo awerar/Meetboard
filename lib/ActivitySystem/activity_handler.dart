@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
@@ -114,6 +115,19 @@ class ActivityHandler with ChangeNotifier {
 
     _documentListener.cancel();
     _documentListener = null;
+  }
+
+  //If we don't have the latest global data,
+  ActivityPreviewSnapshot getCurrentPreview(ActivityPreviewSnapshot globalPreview) {
+    if (listeningToUpdates) return _latestSnapshot.getPreview();
+    else {
+      return ActivityPreviewSnapshot(
+        ref: ref,
+        name: _name.hasValue ? _name.currentValue : globalPreview.name,
+        time: _time.hasValue ? _time.currentValue : globalPreview.time,
+        coming: _coming.hasValue ? _coming.currentValue : globalPreview.coming
+      );
+    }
   }
 
   static DateTime _parseTimestamp(Timestamp timestamp) {

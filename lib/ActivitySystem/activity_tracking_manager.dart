@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:core';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meetboard/ActivitySystem/activity_handler.dart';
 import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
@@ -14,12 +15,14 @@ typedef OnPreviewsChangeFunction = void Function(ActivitySnapshot snapshot);
 class ActivityTrackingManager {
   static ActivityTrackingManager instance;
 
+  Map<ActivityReference, ActivityPreviewSnapshot> _globalPreviews = Map();
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
   List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
 
   StreamController<List<ActivityPreviewSnapshot>> _previewsController = StreamController.broadcast();
   Stream<List<ActivityPreviewSnapshot>> get previewsStream => _previewsController.stream;
 
+  Map<ActivityReference, int> _onlineStreamListenerCount = Map();
   Map<ActivityReference, StreamController<ActivitySnapshot>> _snapshotControllers = Map();
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
@@ -42,6 +45,14 @@ class ActivityTrackingManager {
           if (!_trackedActivities.contains(ref)) {
             _startTrackActivity(ref, ActivityHandler.fromDocumentSnapshot(ref, change.document));
           }
+
+          _globalPreviews[ref] = ActivityPreviewSnapshot(
+              ref: ref,
+              coming: change.document.data["coming"],
+              time: (change.document.data["time"] as Timestamp).toDate(),
+              name: change.document.data["name"]
+          );
+          _updatePreview(ref);
         } else {
           //Removed preview
           _stopTrackActivity(ref);
@@ -53,7 +64,33 @@ class ActivityTrackingManager {
   Stream<ActivitySnapshot> getActivityChangeStream(ActivityReference ref) {
     assert(_trackedActivities.contains(ref));
 
-    return _snapshotControllers[ref].stream;
+    StreamController<ActivitySnapshot> parentController = _snapshotControllers[ref];
+    StreamSubscription parentSubscription;
+
+    StreamController<ActivitySnapshot> controller;
+    controller = StreamController.broadcast(
+        onListen: () {
+          assert(parentController == null);
+
+          if (_onlineStreamListenerCount == 0) _activityHandlers[ref].startListen();
+
+          _onlineStreamListenerCount[ref]++;
+          parentSubscription = parentController.stream.listen((event) {
+            controller.add(event);
+          });
+        },
+        onCancel: () {
+          assert(parentController != null);
+
+          _onlineStreamListenerCount[ref]--;
+          parentSubscription.cancel();
+          parentSubscription = null;
+
+          if (_onlineStreamListenerCount == 0) _activityHandlers[ref].stopListen();
+        }
+    );
+
+    return controller.stream;
   }
 
   Future<void> write(ActivityReference ref, ActivityWriteFunc writeFunc) {
@@ -81,13 +118,11 @@ class ActivityTrackingManager {
 
     StreamController<ActivitySnapshot> controller = StreamController.broadcast();
 
+    _onlineStreamListenerCount[ref] = 0;
     _snapshotControllers[ref] = controller;
     handler.addListener(() {
       _snapshotControllers[ref].add(handler.latestSnapshot);
     });
-
-    _previews[ref] = handler.latestSnapshot.getPreview();
-    _onPreviewsChange();
 
     controller.stream.listen((snapshot) {
       _previews[ref] = snapshot.getPreview();
@@ -101,7 +136,16 @@ class ActivityTrackingManager {
 
     (_activityHandlers..[ref].dispose()).remove(ref);
     (_snapshotControllers..[ref].close()).remove(ref);
+
+    _onlineStreamListenerCount.remove(ref);
+
     _previews.remove(ref);
+    _globalPreviews.remove(ref);
+    _onPreviewsChange();
+  }
+
+  void _updatePreview(ActivityReference ref) {
+    _previews[ref] = _activityHandlers[ref].getCurrentPreview(_globalPreviews[ref]);
     _onPreviewsChange();
   }
 
