@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:core';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:meetboard/ActivitySystem/activity_handler.dart';
 import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
@@ -14,6 +15,8 @@ typedef OnPreviewsChangeFunction = void Function(ActivitySnapshot snapshot);
 
 class ActivityTrackingManager {
   static ActivityTrackingManager instance;
+  static Completer<void> _completer = Completer();
+  static Future<void> get initialized => _completer.future;
 
   Map<ActivityReference, ActivityPreviewSnapshot> _globalPreviews = Map();
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
@@ -28,23 +31,30 @@ class ActivityTrackingManager {
   HashSet<ActivityReference> _trackedActivities = HashSet();
 
   static void initialize() {
-    if (instance == null) ActivityTrackingManager._();
+    if (instance == null) {
+      ActivityTrackingManager._();
+      _completer.complete();
+    }
   }
 
   ActivityTrackingManager._() {
     assert(instance == null);
     instance = this;
 
+    ///TODO: Update when user changes
     UserModel.instance.userActivityCollection.snapshots().listen((querySnapshot) {
       querySnapshot.documentChanges.forEach((change) {
         ActivityReference ref = ActivityReference(change.document.documentID);
 
-        if (change.document.exists) {
+        if (change.type == DocumentChangeType.added) {
           //Added preview
-          if (!_trackedActivities.contains(ref)) {
-            _startTrackActivity(ref, ActivityHandler.fromDocumentSnapshot(ref, change.document));
-          }
+          if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, ActivityHandler.fromPreviewDocumentSnapshot(ref, change.document));
+        } else if(change.type == DocumentChangeType.removed) {
+          //Removed preview
+          if (_trackedActivities.contains(ref)) _stopTrackActivity(ref);
+        }
 
+        if (change.type == DocumentChangeType.modified || change.type == DocumentChangeType.added) {
           _globalPreviews[ref] = ActivityPreviewSnapshot(
               ref: ref,
               coming: change.document.data["coming"],
@@ -52,9 +62,6 @@ class ActivityTrackingManager {
               name: change.document.data["name"]
           );
           _updatePreview(ref);
-        } else {
-          //Removed preview
-          _stopTrackActivity(ref);
         }
       });
     });
@@ -112,11 +119,6 @@ class ActivityTrackingManager {
       _previews[ref] = handler.latestSnapshot.getPreview();
       _onPreviewsChange();
     });
-
-    controller.stream.listen((snapshot) {
-      _previews[ref] = snapshot.getPreview();
-      _onPreviewsChange();
-    });
   }
 
   void _stopTrackActivity(ActivityReference ref) {
@@ -133,6 +135,8 @@ class ActivityTrackingManager {
 
   void _updatePreview(ActivityReference ref) {
     _previews[ref] = _activityHandlers[ref].getCurrentPreview(_globalPreviews[ref]);
+    debugPrint(_globalPreviews[ref].name);
+    debugPrint(_previews[ref].name);
     _onPreviewsChange();
   }
 

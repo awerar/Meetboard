@@ -1,17 +1,18 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:connectivity_widget/connectivity_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/ActivityPage/activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
 import 'package:provider/provider.dart';
 
-/*class MainPage extends StatelessWidget {
+class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,15 +20,29 @@ import 'package:provider/provider.dart';
         title: Text("Planned Activities",),
         centerTitle: true,
       ),
-      body: Consumer<ActivityListModel>(builder: (context, activityListModel, child) => _buildActivityList(activityListModel, context)),
-      floatingActionButton: MainPageSpeedDial(),
+      body: FutureBuilder<void>(
+        future: ActivityTrackingManager.initialized,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return StreamBuilder<List<ActivityPreviewSnapshot>>(
+                initialData: ActivityTrackingManager.instance.previews,
+                stream: ActivityTrackingManager.instance.previewsStream,
+                builder: (context, snapshot) {
+                  return _buildPreviewList(
+                      context, snapshot.hasData ? snapshot.data : []);
+                }
+            );
+          } else {
+            return Center(child: CircularProgressIndicator(),);
+          }
+        },
+      ),
+      //floatingActionButton: MainPageSpeedDial(),
     );
   }
 
-  Widget _buildActivityList(ActivityListModel activityListModel, BuildContext context) {
-    List<ActivityPreview> activities = activityListModel.activityPreviews.map((ref) => ref.value).toList(growable: false);
-
-    if (!activityListModel.isLoadingPreviews && activities.length > 0) {
+  Widget _buildPreviewList(BuildContext context, List<ActivityPreviewSnapshot> previews) {
+    if (previews.length > 0) {
       List<int> categoryDays = [
         0, 1, 6, 30, 365, 99999999
       ];
@@ -39,9 +54,9 @@ import 'package:provider/provider.dart';
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(ActivityPreview activity in activities) {
+      for(ActivityPreviewSnapshot preview in previews) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-        int dayDiff = activity.localTime.difference(today).inDays;
+        int dayDiff = preview.time.difference(today).inDays;
 
         bool newCategory = false;
         while(dayDiff > categoryDays[category] && category < categoryDays.length) {
@@ -57,22 +72,11 @@ import 'package:provider/provider.dart';
           ));
           tiles.add(Divider());
         }
-        tiles.add(ActivityCard(activityPreview: activity));
+        tiles.add(ActivityCard(preview: preview));
         first = false;
       }
-      
-      return ConnectivityWidget(
-          offlineBanner: Container(color: Theme.of(context).colorScheme.error, child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text("Offline Mode", style: Theme.of(context).textTheme.subtitle1.copyWith(color: Theme.of(context).colorScheme.onError), textAlign: TextAlign.center,),
-              ],
-            ),
-          ),),
-        builder: (context, isOnline) => ListView(children: tiles, padding: EdgeInsets.all(8),)
-      );
+
+      return ListView(children: tiles, padding: EdgeInsets.all(8),);
     } else {
       return Container(
         child: Align(
@@ -86,8 +90,8 @@ import 'package:provider/provider.dart';
 
 
 class ActivityCard extends StatefulWidget {
-  final ActivityPreview activityPreview;
-  ActivityCard({@required this.activityPreview});
+  final ActivityPreviewSnapshot preview;
+  ActivityCard({@required this.preview});
 
   @override
   _ActivityCardState createState() => _ActivityCardState();
@@ -135,25 +139,25 @@ class _ActivityCardState extends State<ActivityCard> {
               child: Stack(
                 children: <Widget>[
                   Container(
-                    color: widget.activityPreview.coming ? green : red,
+                    color: widget.preview.coming ? green : red,
                     constraints: BoxConstraints.expand(),
                   ),
-                  Align(child: Icon(widget.activityPreview.coming ? Icons.check : Icons.close, color: Colors.white), alignment: Alignment.center,)
+                  Align(child: Icon(widget.preview.coming ? Icons.check : Icons.close, color: Colors.white), alignment: Alignment.center,)
                 ],
               ),
             ),
             Flexible(
                 child: ListTile(
-                  title: Hero(child: Text(widget.activityPreview.localName, ), tag: widget.activityPreview.hashCode.toString() + "Title",),
+                  title: Text(widget.preview.name, ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(_dateFormat.format(widget.activityPreview.localTime)),
-                      ActivityTimeText(time: widget.activityPreview.localTime,)
+                      Text(_dateFormat.format(widget.preview.time)),
+                      ActivityTimeText(time: widget.preview.time,)
                     ],
                   ),
-                  trailing: Text(widget.activityPreview.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),
+                  trailing: Text(widget.preview.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),
                   isThreeLine: true,
                 )
             )
@@ -163,12 +167,8 @@ class _ActivityCardState extends State<ActivityCard> {
   }
 
   void _transitionToViewPage() async {
-    final transitionDuration = Duration(milliseconds: 300);
-
-    final activityListModel = Provider.of<ActivityListModel>(context);
-    final ValueReference<Activity> activityReference = await activityListModel.beginListenForActivity(widget.activityPreview.id, onActivityRemoved: () {
-      Navigator.of(context).pop();
-    });
+    throw UnimplementedError();
+    /*final transitionDuration = Duration(milliseconds: 300);
 
     EdgeInsets padding = (_cardKey.currentWidget as Card).margin;
 
@@ -254,7 +254,7 @@ class _ActivityCardState extends State<ActivityCard> {
           );
         }
       )
-    );
+    );*/
   }
 }
 
@@ -309,4 +309,4 @@ class _ActivityTimeTextState extends State<ActivityTimeText> {
       return "In ${timeLeft.inHours}h ${(timeLeft.inMinutes % 60) + 1}m ${timeLeft.inSeconds % 60}s";
     }
   }
-}*/
+}

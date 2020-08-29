@@ -32,7 +32,6 @@ dependencies:
   firebase_auth: ^0.14.0+5
   provider: ^3.0.0
   cloud_functions: ^0.5.0
-  connectivity_widget: ^0.1.7
   qr_flutter: ^3.2.0
   barcode_scan: ^3.0.1
   material_design_icons_flutter: ^2.7.94

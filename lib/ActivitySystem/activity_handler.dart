@@ -50,14 +50,16 @@ class ActivityHandler with ChangeNotifier {
     _linkValues();
   }
 
-  ActivityHandler.fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromGlobalValues(
-    ref,
-    doc.data["name"],
-    _parseTimestamp(doc.data[""] as Timestamp),
-    _parseUsers(doc.data["users"]),
-  );
+  ActivityHandler.fromPreviewDocumentSnapshot(this.ref, DocumentSnapshot doc) :
+        _name = ActivityValue.global(doc.data["name"]),
+        _time = ActivityValue.global((doc.data["time"] as Timestamp).toDate()),
+        _coming = ActivityValue.global(doc.data["coming"]),
+        _users = ActivityUsersValue.noValue() {
+    _linkValues();
+  }
 
-  static Future<ActivityHandler> create(String name, DateTime time) async {
+
+      static Future<ActivityHandler> create(String name, DateTime time) async {
     HttpsCallableResult result = await CloudFunctions.instance.getHttpsCallable(functionName: "createActivity").call({
       "name": name,
       "time": Timestamp.fromDate(time)
@@ -72,7 +74,7 @@ class ActivityHandler with ChangeNotifier {
     await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({
       "id": ref.id
     });
-    return ActivityHandler.fromDocumentSnapshot(ref, await ref.activityDocument.get());
+    return ActivityHandler.fromPreviewDocumentSnapshot(ref, await ref.activityDocument.get());
   }
 
   void _linkValues() {
@@ -105,7 +107,7 @@ class ActivityHandler with ChangeNotifier {
       _users.setGlobalUsers(globalUsers);
 
       _name.setGlobalValue(doc.data["name"]);
-      _time.setGlobalValue(_parseTimestamp(doc.data["time"]));
+      _time.setGlobalValue((doc.data["time"] as Timestamp).toDate());
       _coming.setGlobalValue(_parseComing(globalUsers));
     });
   }
@@ -128,10 +130,6 @@ class ActivityHandler with ChangeNotifier {
         coming: _coming.hasValue ? _coming.currentValue : globalPreview.coming
       );
     }
-  }
-
-  static DateTime _parseTimestamp(Timestamp timestamp) {
-    return DateTime.fromMillisecondsSinceEpoch(timestamp.millisecondsSinceEpoch);
   }
 
   static bool _parseComing(Iterable<UserDataSnapshot> users) {

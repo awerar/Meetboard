@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 
 class UserModel extends ChangeNotifier {
   FirebaseUser _user;
@@ -31,6 +32,7 @@ class UserModel extends ChangeNotifier {
     }
 
     _handleUserDocument();
+    ActivityTrackingManager.initialize();
 
     notifyListeners();
   }

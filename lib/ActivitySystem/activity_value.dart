@@ -71,6 +71,7 @@ class ActivityUsersValue extends IActivityValue<List<UserDataSnapshot>> {
 
   ActivityUsersValue.local(List<UserDataSnapshot> users) : _globalUsers = HashSet(), _localAddedUsers = HashSet.from(users), _localRemovedUsers = HashSet();
   ActivityUsersValue.global(List<UserDataSnapshot> users) : _globalUsers = HashSet.from(users), _localAddedUsers = HashSet(), _localRemovedUsers = HashSet();
+  ActivityUsersValue.noValue() : _globalUsers = HashSet(), _localAddedUsers = HashSet(), _localRemovedUsers = HashSet();
 
   void setGlobalUsers(List<UserDataSnapshot> users) {
     Iterable<UserDataSnapshot> addedUsers = users.where((element) => !_globalUsers.contains(element));

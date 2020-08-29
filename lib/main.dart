@@ -10,25 +10,34 @@ import 'package:meetboard/Models/user_model.dart';
 
 void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  UserModel _userModel;
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
     timeDilation = 1;
 
-    ActivityTrackingManager.initialize();
-
-    UserModel userModel = UserModel(navigatorKey);
+    _userModel = UserModel(navigatorKey);
 
     _handleDynamicLinks();
 
-    return Provider.value(
-      value: userModel,
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider.value(
+      value: _userModel,
       child: MaterialApp(
         navigatorKey: navigatorKey,
         title: "Meetboard",
-        home: /*MainPage()*/ Scaffold(),
+        home: MainPage(),
         theme: getTheme(),
       ),
     );
