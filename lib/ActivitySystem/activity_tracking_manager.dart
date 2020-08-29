@@ -5,14 +5,14 @@ import 'dart:core';
 import 'package:meetboard/ActivitySystem/activity_handler.dart';
 import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
-import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 typedef OnActivityChangeFunction = void Function(ActivitySnapshot snapshot);
 typedef OnPreviewsChangeFunction = void Function(ActivitySnapshot snapshot);
 
-class ActivityListModel {
-  static ActivityListModel instance;
+class ActivityTrackingManager {
+  static ActivityTrackingManager instance;
 
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
   List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
@@ -25,7 +25,11 @@ class ActivityListModel {
 
   HashSet<ActivityReference> _trackedActivities = HashSet();
 
-  ActivityListModel() {
+  static void initialize() {
+    if (instance == null) ActivityTrackingManager._();
+  }
+
+  ActivityTrackingManager._() {
     assert(instance == null);
     instance = this;
 
@@ -50,6 +54,23 @@ class ActivityListModel {
     assert(_trackedActivities.contains(ref));
 
     return _snapshotControllers[ref].stream;
+  }
+
+  Future<void> write(ActivityReference ref, ActivityWriteFunc writeFunc) {
+    assert(_trackedActivities.contains(ref));
+
+    return _activityHandlers[ref].write(writeFunc);
+  }
+
+  Future<ActivityReference> createActivity(String name, DateTime time) async {
+    ActivityHandler handler = await ActivityHandler.create(name, time);
+    _startTrackActivity(handler.ref, handler);
+    return handler.ref;
+  }
+
+  Future<Stream<ActivitySnapshot>> joinActivity(ActivityReference ref) async {
+    _startTrackActivity(ref, await ActivityHandler.join(ref));
+    return getActivityChangeStream(ref);
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {

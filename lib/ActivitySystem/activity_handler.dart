@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
-import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
@@ -93,9 +92,8 @@ class ActivityHandler with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> write(_ActivityWriterWriteFunc writeFunc) {
-    ActivityWriter writer = ActivityWriter(this, writeFunc);
-    return writer.write();
+  Future<void> write(ActivityWriteFunc writeFunc) {
+    return ActivityWriter._write(writeFunc, this);
   }
 
   void startListen() {
@@ -131,26 +129,29 @@ class ActivityHandler with ChangeNotifier {
   }
 }
 
-typedef _ActivityWriterWriteFunc = void Function(ActivityValueWriter<String> name, ActivityValueWriter<DateTime> time, ActivityValueWriter<bool> coming, ActivityUsersValueWriter users);
+typedef ActivityWriteFunc = void Function(ActivityWriter writer);
 
 class ActivityWriter {
   final ActivityHandler _handler;
   ActivityReference get ref => _handler.ref;
 
-  final _ActivityWriterWriteFunc _write;
+  final ActivityValueWriter<String> name;
+  final ActivityValueWriter<DateTime> time;
+  final ActivityValueWriter<bool> coming;
+  final ActivityUsersValueWriter users;
+  List<IActivityValueWriter> get _writers => [name, time, coming, users];
 
-  ActivityWriter(this._handler, this._write);
+  ActivityWriter._(this._handler) :
+    name = ActivityValueWriter(_handler.ref, _handler._name, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"name": val})),
+    time = ActivityValueWriter(_handler.ref, _handler._time, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"time": Timestamp.fromDate(val)})),
+    coming = ActivityValueWriter(_handler.ref, _handler._coming, (val) => FirestoreChange.single(_handler.ref.activityDocument.collection("users").document(UserModel.instance.user.uid), {"coming": val})),
+    users = ActivityUsersValueWriter(_handler.ref, _handler._users);
 
-  Future<void> write() {
-    ActivityValueWriter<String> name = ActivityValueWriter(ref, _handler._name, (val, ref) => FirestoreChange.single(ref.activityDocument, {"name": val}));
-    ActivityValueWriter<DateTime> time = ActivityValueWriter(ref, _handler._time, (val, ref) => FirestoreChange.single(ref.activityDocument, {"time": Timestamp.fromDate(val)}));
-    ActivityValueWriter<bool> coming = ActivityValueWriter(ref, _handler._coming, (val, ref) => FirestoreChange.single(ref.activityDocument.collection("users").document(UserModel.instance.user.uid), {"coming": val}));
-    ActivityUsersValueWriter users = ActivityUsersValueWriter(ref, _handler._users);
-    List<IActivityValueWriter> writers = [name, time, coming, users];
+  static Future<void> _write(ActivityWriteFunc writeFunc, ActivityHandler handler) {
+    ActivityWriter writer = ActivityWriter._(handler);
+    writeFunc(writer);
 
-    _write(name, time, coming, users);
-
-    return writers.fold<FirestoreChange>(FirestoreChange.none(), (acc, change) => acc.merge(change.getChanges())).apply();
+    return writer._writers.fold<FirestoreChange>(FirestoreChange.none(), (acc, change) => acc.merge(change.getChanges())).apply();
   }
 }
 

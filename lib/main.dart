@@ -1,6 +1,6 @@
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/MainPage/main_page.dart';
 import 'package:meetboard/themes.dart';
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     timeDilation = 1;
 
-    ActivityListModel activityListModel = ActivityListModel();
+    ActivityTrackingManager.initialize();
 
     UserModel userModel = UserModel(navigatorKey);
 

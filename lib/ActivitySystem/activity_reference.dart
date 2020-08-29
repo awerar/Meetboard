@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meetboard/ActivitySystem/ActivitySnapshot.dart';
-import 'package:meetboard/Models/activity_list_model.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
+import 'file:///C:/Users/Alexander/AndroidStudioProjects/meetboard/lib/ActivitySystem/activity_tracking_manager.dart';
 
 class ActivityReference {
   final String id;
@@ -8,7 +8,7 @@ class ActivityReference {
   ActivityReference(this.id);
 
   Stream<ActivitySnapshot> getChangeStream() {
-    return ActivityListModel.instance.getActivityChangeStream(this);
+    return ActivityTrackingManager.instance.getActivityChangeStream(this);
   }
 
   DocumentReference get activityDocument => Firestore.instance.collection("activities").document(id);
@@ -18,7 +18,6 @@ class ActivityReference {
 
   @override
   bool operator ==(other) {
-    // TODO: implement ==
     return this.hashCode == other.hashCode && other is ActivityReference;
   }
 }

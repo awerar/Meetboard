@@ -1,3 +1,5 @@
+library activity_system;
+
 import 'dart:collection';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -115,7 +117,7 @@ abstract class IActivityValueWriter<T, C extends IActivityValue<T>> {
 
 class ActivityValueWriter<Q> extends IActivityValueWriter<Q, ActivityValue<Q>> {
   final Q _startValue;
-  final FirestoreChange Function(Q value, ActivityReference ref) _getChange;
+  final FirestoreChange Function(Q value) _getChange;
 
   ActivityValueWriter(ActivityReference ref, ActivityValue<Q> activityValue, this._getChange) : _startValue = activityValue.currentValue, super(ref, activityValue);
 
@@ -124,7 +126,7 @@ class ActivityValueWriter<Q> extends IActivityValueWriter<Q, ActivityValue<Q>> {
 
   @override
   FirestoreChange getChanges() {
-    return _activityValue.currentValue != _startValue ? _getChange(currentValue, _ref) : FirestoreChange.none();
+    return _activityValue.currentValue != _startValue ? _getChange(currentValue) : FirestoreChange.none();
   }
 
   void updateValue(Q Function(Q currentValue) modifier) {
