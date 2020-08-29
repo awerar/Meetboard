@@ -22,7 +22,6 @@ class ActivityTrackingManager {
   StreamController<List<ActivityPreviewSnapshot>> _previewsController = StreamController.broadcast();
   Stream<List<ActivityPreviewSnapshot>> get previewsStream => _previewsController.stream;
 
-  Map<ActivityReference, int> _onlineStreamListenerCount = Map();
   Map<ActivityReference, StreamController<ActivitySnapshot>> _snapshotControllers = Map();
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
@@ -64,33 +63,7 @@ class ActivityTrackingManager {
   Stream<ActivitySnapshot> getActivityChangeStream(ActivityReference ref) {
     assert(_trackedActivities.contains(ref));
 
-    StreamController<ActivitySnapshot> parentController = _snapshotControllers[ref];
-    StreamSubscription parentSubscription;
-
-    StreamController<ActivitySnapshot> controller;
-    controller = StreamController.broadcast(
-        onListen: () {
-          assert(parentController == null);
-
-          if (_onlineStreamListenerCount == 0) _activityHandlers[ref].startListen();
-
-          _onlineStreamListenerCount[ref]++;
-          parentSubscription = parentController.stream.listen((event) {
-            controller.add(event);
-          });
-        },
-        onCancel: () {
-          assert(parentController != null);
-
-          _onlineStreamListenerCount[ref]--;
-          parentSubscription.cancel();
-          parentSubscription = null;
-
-          if (_onlineStreamListenerCount == 0) _activityHandlers[ref].stopListen();
-        }
-    );
-
-    return controller.stream;
+    return _snapshotControllers[ref].stream;
   }
 
   Future<void> write(ActivityReference ref, ActivityWriteFunc writeFunc) {
@@ -116,12 +89,28 @@ class ActivityTrackingManager {
 
     _activityHandlers[ref] = handler;
 
-    StreamController<ActivitySnapshot> controller = StreamController.broadcast();
+    bool sendEvents = false;
 
-    _onlineStreamListenerCount[ref] = 0;
+    // ignore: close_sinks
+    StreamController<ActivitySnapshot> controller = StreamController.broadcast(
+      onListen: () {
+        assert(sendEvents == false);
+        sendEvents = true;
+        _activityHandlers[ref].startListen();
+      },
+      onCancel: () {
+        assert(sendEvents == true);
+        sendEvents = false;
+        _activityHandlers[ref].stopListen();
+      },
+    );
+
     _snapshotControllers[ref] = controller;
     handler.addListener(() {
-      _snapshotControllers[ref].add(handler.latestSnapshot);
+      if (sendEvents) _snapshotControllers[ref].add(handler.latestSnapshot);
+
+      _previews[ref] = handler.latestSnapshot.getPreview();
+      _onPreviewsChange();
     });
 
     controller.stream.listen((snapshot) {
@@ -136,8 +125,6 @@ class ActivityTrackingManager {
 
     (_activityHandlers..[ref].dispose()).remove(ref);
     (_snapshotControllers..[ref].close()).remove(ref);
-
-    _onlineStreamListenerCount.remove(ref);
 
     _previews.remove(ref);
     _globalPreviews.remove(ref);
