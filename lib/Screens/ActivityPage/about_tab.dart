@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../themes.dart';
 
-class AboutTab extends StatelessWidget {
+/*class AboutTab extends StatelessWidget {
   final Activity activity;
   final UserActivityData user;
   final TabController tabController;
@@ -62,4 +62,4 @@ class AboutTab extends StatelessWidget {
 
     settings.setValue("coming", !settings.getSavedValue("coming"));
   }
-}
+}*/

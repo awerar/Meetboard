@@ -22,7 +22,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import 'about_tab.dart';
 
-class ActivityPage extends StatefulWidget {
+/*class ActivityPage extends StatefulWidget {
   static const String routeName = "/view_activity_page";
 
   @override
@@ -253,4 +253,4 @@ class _ActivityPageState extends State<ActivityPage> with SingleTickerProviderSt
     DateTime date = activityReference.value.localTime;
     return date.subtract(Duration(hours: date.hour, minutes: date.minute, seconds: date.second, milliseconds: date.millisecond, microseconds: date.microsecond));
   }
-}
+}*/

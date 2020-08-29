@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-class EditActivityPage extends StatefulWidget {
+/*class EditActivityPage extends StatefulWidget {
   @override
   _EditActivityPageState createState() => _EditActivityPageState();
 }
@@ -173,4 +173,4 @@ class EditActivityPageSettings{
   final Future<void> Function(Activity) handleNewActivity;
 
   EditActivityPageSettings({@required this.appbarLabel, this.baseActivity, @required this.handleNewActivity});
-}
+}*/

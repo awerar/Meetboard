@@ -3,7 +3,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:meetboard/Screens/EditActivityPage/edit_activity_page.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 
-class MainPageSpeedDial extends StatefulWidget {
+/*class MainPageSpeedDial extends StatefulWidget {
 
   @override
   _MainPageSpeedDialState createState() => _MainPageSpeedDialState();
@@ -77,4 +77,4 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
       ));
     }
   }
-}
+}*/

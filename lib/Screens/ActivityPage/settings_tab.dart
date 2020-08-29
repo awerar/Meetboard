@@ -6,7 +6,7 @@ import 'package:meetboard/Models/settings_model.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:provider/provider.dart';
 
-class SettingsTab extends StatefulWidget {
+/*class SettingsTab extends StatefulWidget {
   final UserActivityData user;
   final Activity activity;
 
@@ -252,4 +252,4 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
     if(settings.hasUnsavedChanges) bannerController.forward();
     else bannerController.reverse();
   }
-}
+}*/

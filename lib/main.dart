@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         navigatorKey: navigatorKey,
         title: "Meetboard",
-        home: MainPage(),
+        home: /*MainPage()*/ Scaffold(),
         theme: getTheme(),
       ),
     );
@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
       if (link.pathSegments.join("/") == "activities/join") {
         debugPrint(link.queryParameters.toString());
         navigatorKey.currentState.push(MaterialPageRoute(
-            builder: (context) => JoinActivityPage(),
+            builder: (context) => /*JoinActivityPage()*/ throw UnimplementedError(),
             settings: RouteSettings(arguments: link.queryParameters)
         ));
       }

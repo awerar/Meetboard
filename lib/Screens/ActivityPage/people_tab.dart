@@ -7,7 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../themes.dart';
 
-class PeopleTab extends StatelessWidget {
+/*class PeopleTab extends StatelessWidget {
   final Activity activity;
   final UserActivityData user;
 
@@ -186,4 +186,4 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
     });
     super.dispose();
   }
-}
+}*/

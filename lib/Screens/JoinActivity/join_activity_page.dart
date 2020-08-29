@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
-class JoinActivityPage extends StatefulWidget {
+/*class JoinActivityPage extends StatefulWidget {
   @override
   _JoinActivityPageState createState() => _JoinActivityPageState();
 }
@@ -198,4 +198,4 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
   void _unfocus() {
     FocusScope.of(context).requestFocus(new FocusNode());
   }
-}
+}*/

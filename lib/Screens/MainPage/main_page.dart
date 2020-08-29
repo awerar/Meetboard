@@ -11,7 +11,7 @@ import 'package:meetboard/Screens/MainPage/main_page_speed_dial.dart';
 import 'package:meetboard/themes.dart';
 import 'package:provider/provider.dart';
 
-class MainPage extends StatelessWidget {
+/*class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -309,4 +309,4 @@ class _ActivityTimeTextState extends State<ActivityTimeText> {
       return "In ${timeLeft.inHours}h ${(timeLeft.inMinutes % 60) + 1}m ${timeLeft.inSeconds % 60}s";
     }
   }
-}
+}*/
