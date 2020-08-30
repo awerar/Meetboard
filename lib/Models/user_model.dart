@@ -12,6 +12,7 @@ class UserModel extends ChangeNotifier {
   String get username => _username;
   FirebaseUser get user => _user;
   DocumentReference get userDocument => _userDocument;
+  DocumentReference get userActivitiesDocument => _userActivitiesDocument;
   CollectionReference get userActivityCollection => _userActivityCollection;
 
   GlobalKey<NavigatorState> _navigatorKey;

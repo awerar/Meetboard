@@ -16,8 +16,8 @@ import 'activity_value.dart';
 class ActivityHandler with ChangeNotifier {
   final ActivityReference ref;
 
-  StreamSubscription _documentListener;
-  bool get listeningToUpdates => _documentListener != null;
+  StreamSubscription _activityListener;
+  bool get listeningToUpdates => _activityListener != null;
 
   ActivitySnapshot _latestSnapshot;
   ActivitySnapshot get latestSnapshot => _latestSnapshot;
@@ -50,16 +50,18 @@ class ActivityHandler with ChangeNotifier {
     _linkValues();
   }
 
-  ActivityHandler.fromPreviewDocumentSnapshot(this.ref, DocumentSnapshot doc) :
-        _name = ActivityValue.global(doc.data["name"]),
-        _time = ActivityValue.global((doc.data["time"] as Timestamp).toDate()),
-        _coming = ActivityValue.global(doc.data["coming"]),
-        _users = ActivityUsersValue.noValue() {
-    _linkValues();
+  ActivityHandler._fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromGlobalValues(
+      ref,
+      doc.data["name"],
+      (doc.data["time"] as Timestamp).toDate(),
+      _parseUsers(doc.data["users"])
+  );
+
+  static Future<ActivityHandler> fromExisting(ActivityReference ref) {
+
   }
 
-
-      static Future<ActivityHandler> create(String name, DateTime time) async {
+  static Future<ActivityHandler> create(String name, DateTime time) async {
     HttpsCallableResult result = await CloudFunctions.instance.getHttpsCallable(functionName: "createActivity").call({
       "name": name,
       "time": Timestamp.fromDate(time)
@@ -74,7 +76,7 @@ class ActivityHandler with ChangeNotifier {
     await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({
       "id": ref.id
     });
-    return ActivityHandler.fromPreviewDocumentSnapshot(ref, await ref.activityDocument.get());
+    return ActivityHandler._fromDocumentSnapshot(ref, await ref.activityDocument.get());
   }
 
   void _linkValues() {
@@ -102,7 +104,7 @@ class ActivityHandler with ChangeNotifier {
   void startListen() {
     assert(!listeningToUpdates);
 
-    _documentListener = ref.activityDocument.snapshots().listen((doc) {
+    _activityListener = ref.activityDocument.snapshots().listen((doc) {
       Iterable<UserDataSnapshot> globalUsers = _parseUsers(doc.data["users"]);
       _users.setGlobalUsers(globalUsers);
 
@@ -115,21 +117,8 @@ class ActivityHandler with ChangeNotifier {
   void stopListen() {
     assert(listeningToUpdates);
 
-    _documentListener.cancel();
-    _documentListener = null;
-  }
-
-  //If we don't have the latest global data,
-  ActivityPreviewSnapshot getCurrentPreview(ActivityPreviewSnapshot globalPreview) {
-    if (listeningToUpdates) return _latestSnapshot.getPreview();
-    else {
-      return ActivityPreviewSnapshot(
-        ref: ref,
-        name: _name.hasValue ? _name.currentValue : globalPreview.name,
-        time: _time.hasValue ? _time.currentValue : globalPreview.time,
-        coming: _coming.hasValue ? _coming.currentValue : globalPreview.coming
-      );
-    }
+    _activityListener.cancel();
+    _activityListener = null;
   }
 
   static bool _parseComing(Iterable<UserDataSnapshot> users) {

@@ -18,7 +18,6 @@ class ActivityTrackingManager {
   static Completer<void> _completer = Completer();
   static Future<void> get initialized => _completer.future;
 
-  Map<ActivityReference, ActivityPreviewSnapshot> _globalPreviews = Map();
   Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
   List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
 
@@ -29,6 +28,7 @@ class ActivityTrackingManager {
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
 
   HashSet<ActivityReference> _trackedActivities = HashSet();
+  HashSet<ActivityReference> _prevGlobalActivities = HashSet();
 
   static void initialize() {
     if (instance == null) {
@@ -42,27 +42,14 @@ class ActivityTrackingManager {
     instance = this;
 
     ///TODO: Update when user changes
-    UserModel.instance.userActivityCollection.snapshots().listen((querySnapshot) {
-      querySnapshot.documentChanges.forEach((change) {
-        ActivityReference ref = ActivityReference(change.document.documentID);
-
-        if (change.type == DocumentChangeType.added) {
-          //Added preview
-          if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, ActivityHandler.fromPreviewDocumentSnapshot(ref, change.document));
-        } else if(change.type == DocumentChangeType.removed) {
-          //Removed preview
-          if (_trackedActivities.contains(ref)) _stopTrackActivity(ref);
-        }
-
-        if (change.type == DocumentChangeType.modified || change.type == DocumentChangeType.added) {
-          _globalPreviews[ref] = ActivityPreviewSnapshot(
-              ref: ref,
-              coming: change.document.data["coming"],
-              time: (change.document.data["time"] as Timestamp).toDate(),
-              name: change.document.data["name"]
-          );
-          _updatePreview(ref);
-        }
+    UserModel.instance.userActivitiesDocument.snapshots().listen((document) {
+      HashSet<ActivityReference> newGlobalActivities = (document.data["activities"] as List<String>).map((e) => ActivityReference(e));
+      
+      Iterable<ActivityReference> addedGlobalActivities = newGlobalActivities.where((element) => !_prevGlobalActivities.contains(element));
+      Iterable<ActivityReference> removedGlobalActivities = _prevGlobalActivities.where((element) => !newGlobalActivities.contains(element));
+      
+      addedGlobalActivities.forEach((ref) { 
+        if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, ActivityHandler.)
       });
     });
   }
