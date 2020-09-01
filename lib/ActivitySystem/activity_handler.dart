@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
@@ -57,8 +56,8 @@ class ActivityHandler with ChangeNotifier {
       _parseUsers(doc.data["users"])
   );
 
-  static Future<ActivityHandler> fromExisting(ActivityReference ref) {
-
+  static Future<ActivityHandler> fromExisting(ActivityReference ref) async {
+    return ActivityHandler._fromDocumentSnapshot(ref, await ref.activityDocument.get());
   }
 
   static Future<ActivityHandler> create(String name, DateTime time) async {

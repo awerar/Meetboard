@@ -13,7 +13,8 @@ function generateActivityID() {
     return id;
 }
 
-function getUserActivityDataFromActivity(activity: firestore.DocumentSnapshot) {
+//OBSOLETE: previews
+/*function getUserActivityDataFromActivity(activity: firestore.DocumentSnapshot) {
     return {
         name: activity.data()!.name,
         time: activity.data()!.time
@@ -32,7 +33,7 @@ function getUserActivityData(activity: firestore.DocumentSnapshot, userData: fir
         ...getUserActivityDataFromActivity(activity),
         ...getUserActivityDataFromUserData(userData)
     };
-}
+}*/
 
 async function isInTimeout(uid: string, context: functions.https.CallableContext) : Promise<boolean> {
     const privateDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("readonly");
@@ -71,11 +72,9 @@ exports.onUserAdded = functions.firestore.document("activities/{activity}/users/
     const activityRef = userDataSnapshot.ref.parent.parent!;
     const activityID = activityRef.id;
     const privateUserDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities");
-    const userActivityRef = privateUserDataRef.collection("user_activities").doc(activityID);
 
     await admin.firestore().runTransaction(async transaction => {
         const userData = await transaction.get(userDataRef);
-        const activity = await transaction.get(activityRef);
 
         const activityUpdateData = {};
         //@ts-ignore
@@ -86,8 +85,6 @@ exports.onUserAdded = functions.firestore.document("activities/{activity}/users/
             activities: firestore.FieldValue.arrayUnion(activityID),
             activity_count: firestore.FieldValue.increment(1)
         });
-
-        transaction.create(userActivityRef, getUserActivityData(activity, userData));
     });
 
     //Transaction succeeded
@@ -106,7 +103,6 @@ exports.onUserRemoved = functions.firestore.document("activities/{activity}/user
     const activityRef = userData.ref.parent.parent!;
     const activityID = activityRef.id;
     const privateUserDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities");
-    const userActivityRef = privateUserDataRef.collection("user_activities").doc(activityID);
 
     await admin.firestore().runTransaction(async transaction => {
         const otherDocuments = (await transaction.get(activityRef.collection("users"))).docs;
@@ -127,9 +123,6 @@ exports.onUserRemoved = functions.firestore.document("activities/{activity}/user
             activities: firestore.FieldValue.arrayRemove(activityID)
         });
     
-        //Remove the userActivity
-        transaction.delete(userActivityRef);
-    
         //If user is the owner, remove all other users aswell
         if (userData.data().role === "owner") {
             otherDocuments.forEach(d => {
@@ -144,24 +137,16 @@ exports.onUserRemoved = functions.firestore.document("activities/{activity}/user
 });
 
 exports.onUserDataChanged = functions.firestore.document("activities/{activity}/users/{userData}").onUpdate((userData, context) => {
-    const uid = userData.after.id;
     const activityRef = userData.after.ref.parent.parent!;
-    const activityID = activityRef.id;
-    const privateUserDataRef = admin.firestore().collection("users").doc(uid).collection("private_data").doc("user_activities");
-    const userActivityRef = privateUserDataRef.collection("user_activities").doc(activityID);
-
-    const batch = admin.firestore().batch();
-    batch.update(userActivityRef, getUserActivityDataFromUserData(userData.after));
 
     const activityUpdateData = {};
     //@ts-ignore
     activityUpdateData["users." + userData.after.id] = userData.after.data();
-    batch.update(activityRef, activityUpdateData);
-
-    return batch.commit();
+    return activityRef.update(activityUpdateData);
 });
 
-exports.onActivityChanged = functions.firestore.document("activities/{activity}").onUpdate((activity, context) => {
+//Obsolete: previews
+/*exports.onActivityChanged = functions.firestore.document("activities/{activity}").onUpdate((activity, context) => {
     const updateData = getUserActivityDataFromActivity(activity.after);
     const activityID = activity.after.id;
 
@@ -172,7 +157,7 @@ exports.onActivityChanged = functions.firestore.document("activities/{activity}"
     });
 
     return batch.commit();
-});
+});*/
 
 //NOTE: userActivity is implicitly added
 exports.createActivity = functions.https.onCall(async (data, context) => {

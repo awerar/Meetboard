@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/ActivityPage/activity_page.dart';

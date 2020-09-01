@@ -7,11 +7,6 @@ Firestore:
             Name: "user_activities"
                 Contains array of activity ids: activities
                 Contains number of activities: activity_count
-                "user_activities" sub-collection:
-                    Name: activity id
-
-                    Contains preview data for the activity: time, name, coming
-                    Contains user role: role
 
             Name: "readonly"
                 Contains readonly private data about user: next_action_time
@@ -30,19 +25,15 @@ Firestore:
             Contains data about the user in the activity: role, coming, username
 
 Cloud Functions:
-    onActivityChanged:
-        fireStore onWrite: "activities/{activity}"
-        Updates the user_activities with activity data
-
     onUserRemoved:
         fireStore onDelete: "activities/{activity}/users/{userData}"
-        Removes the userActivity and removes user from users list
+        Removes user from users list
         If user is last user, remove activity
         If user is owner, removes all other users aswell
 
     onUserAdded:
         fireStore onCreate': "activities/{activity}/users/{userData}"
-        Adds a userActivity and adds user to users list
+        Updates activity document
 
     onUserDataChanged:
         fireStore onUpdate: "activities/{activity}/users/{userData}"

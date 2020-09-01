@@ -5,7 +5,6 @@ import 'dart:core';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:meetboard/ActivitySystem/activity_handler.dart';
-import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
@@ -17,12 +16,6 @@ class ActivityTrackingManager {
   static ActivityTrackingManager instance;
   static Completer<void> _completer = Completer();
   static Future<void> get initialized => _completer.future;
-
-  Map<ActivityReference, ActivityPreviewSnapshot> _previews = Map();
-  List<ActivityPreviewSnapshot> get previews => List<ActivityPreviewSnapshot>.unmodifiable(_previews.values);
-
-  StreamController<List<ActivityPreviewSnapshot>> _previewsController = StreamController.broadcast();
-  Stream<List<ActivityPreviewSnapshot>> get previewsStream => _previewsController.stream;
 
   Map<ActivityReference, StreamController<ActivitySnapshot>> _snapshotControllers = Map();
   Map<ActivityReference, ActivityHandler> _activityHandlers = Map();
@@ -47,9 +40,15 @@ class ActivityTrackingManager {
       
       Iterable<ActivityReference> addedGlobalActivities = newGlobalActivities.where((element) => !_prevGlobalActivities.contains(element));
       Iterable<ActivityReference> removedGlobalActivities = _prevGlobalActivities.where((element) => !newGlobalActivities.contains(element));
-      
-      addedGlobalActivities.forEach((ref) { 
-        if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, ActivityHandler.)
+
+      addedGlobalActivities.forEach((ref) {
+        Future.microtask(() async {
+          if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, await ActivityHandler.fromExisting(ref));
+        });
+      });
+
+      removedGlobalActivities.forEach((ref) {
+        _stopTrackActivity(ref);
       });
     });
   }
@@ -102,9 +101,6 @@ class ActivityTrackingManager {
     _snapshotControllers[ref] = controller;
     handler.addListener(() {
       if (sendEvents) _snapshotControllers[ref].add(handler.latestSnapshot);
-
-      _previews[ref] = handler.latestSnapshot.getPreview();
-      _onPreviewsChange();
     });
   }
 
@@ -114,20 +110,5 @@ class ActivityTrackingManager {
 
     (_activityHandlers..[ref].dispose()).remove(ref);
     (_snapshotControllers..[ref].close()).remove(ref);
-
-    _previews.remove(ref);
-    _globalPreviews.remove(ref);
-    _onPreviewsChange();
-  }
-
-  void _updatePreview(ActivityReference ref) {
-    _previews[ref] = _activityHandlers[ref].getCurrentPreview(_globalPreviews[ref]);
-    debugPrint(_globalPreviews[ref].name);
-    debugPrint(_previews[ref].name);
-    _onPreviewsChange();
-  }
-
-  void _onPreviewsChange() {
-    _previewsController.add(previews);
   }
 }

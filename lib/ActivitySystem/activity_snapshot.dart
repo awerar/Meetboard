@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:meetboard/ActivitySystem/activity_preview_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
@@ -14,13 +13,4 @@ class ActivitySnapshot {
   UserDataSnapshot get currentUser => users[UserModel.instance.user.uid];
 
   ActivitySnapshot({@required this.ref, @required this.name, @required this.time, @required List<UserDataSnapshot> users}) : this.users = Map.fromIterable(users, key: (u) => u.uid);
-
-  ActivityPreviewSnapshot getPreview() {
-    return ActivityPreviewSnapshot(
-      ref: ref,
-      coming: currentUser.coming,
-      name: name,
-      time: time
-    );
-  }
 }
