@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
-import 'file:///C:/Users/Alexander/AndroidStudioProjects/meetboard/lib/ActivitySystem/activity_tracking_manager.dart';
+
+import 'activity_tracking_manager.dart';
 
 class ActivityReference {
   final String id;

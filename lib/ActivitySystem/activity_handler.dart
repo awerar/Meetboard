@@ -48,6 +48,8 @@ class ActivityHandler with ChangeNotifier {
         _coming = ActivityValue.global(_parseComing(users)) {
     _linkValues();
   }
+  
+  ActivityHandler._fromValues(this.ref, this._name, this._time, this._users, this._coming);
 
   ActivityHandler._fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromGlobalValues(
       ref,
@@ -75,7 +77,15 @@ class ActivityHandler with ChangeNotifier {
     await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({
       "id": ref.id
     });
-    return ActivityHandler._fromDocumentSnapshot(ref, await ref.activityDocument.get());
+
+    DocumentSnapshot doc = await ref.activityDocument.get();
+    return ActivityHandler._fromValues(
+        ref,
+        ActivityValue.global(doc.data["name"]),
+        ActivityValue.global((doc.data["time"] as Timestamp).toDate()), 
+        ActivityUsersValue.global(_parseUsers(doc.data["users"]))..addUser(), 
+        ActivityValue.local(true)
+    );
   }
 
   void _linkValues() {
@@ -124,8 +134,10 @@ class ActivityHandler with ChangeNotifier {
     return users.firstWhere((element) => element.uid == UserModel.instance.user.uid).coming;
   }
 
-  static List<UserDataSnapshot> _parseUsers(Map<String, Map<String, dynamic>> userData) {
-    return userData.entries.map((e) => UserDataSnapshot.fromData(e.key, e.value));
+  static List<UserDataSnapshot> _parseUsers(dynamic userData) {
+    return Map<String, dynamic>.from(userData)
+        .map((key, value) => MapEntry(key, Map<String, dynamic>.from(value)))
+        .entries.map((e) => UserDataSnapshot.fromData(e.key, e.value)).toList();
   }
 }
 

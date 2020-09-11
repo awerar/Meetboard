@@ -23,6 +23,14 @@ class ActivityTrackingManager {
   HashSet<ActivityReference> _trackedActivities = HashSet();
   HashSet<ActivityReference> _prevGlobalActivities = HashSet();
 
+  // ignore: close_sinks
+  StreamController<List<ActivitySnapshot>> _allActivitiesStreamController;
+  Stream<List<ActivitySnapshot>> get allActivitiesStream => _allActivitiesStreamController.stream;
+  Map<ActivityReference, StreamSubscription> _allActivitiesSnapshotListeners = Map();
+  bool get _listeningAll => _allActivitiesStreamController.hasListener;
+
+  StreamSubscription _firestoreActivityListener;
+
   static void initialize() {
     if (instance == null) {
       ActivityTrackingManager._();
@@ -34,23 +42,10 @@ class ActivityTrackingManager {
     assert(instance == null);
     instance = this;
 
-    ///TODO: Update when user changes
-    UserModel.instance.userActivitiesDocument.snapshots().listen((document) {
-      HashSet<ActivityReference> newGlobalActivities = (document.data["activities"] as List<String>).map((e) => ActivityReference(e));
-      
-      Iterable<ActivityReference> addedGlobalActivities = newGlobalActivities.where((element) => !_prevGlobalActivities.contains(element));
-      Iterable<ActivityReference> removedGlobalActivities = _prevGlobalActivities.where((element) => !newGlobalActivities.contains(element));
-
-      addedGlobalActivities.forEach((ref) {
-        Future.microtask(() async {
-          if (!_trackedActivities.contains(ref)) _startTrackActivity(ref, await ActivityHandler.fromExisting(ref));
-        });
-      });
-
-      removedGlobalActivities.forEach((ref) {
-        _stopTrackActivity(ref);
-      });
-    });
+    _allActivitiesStreamController = StreamController.broadcast(
+      onListen: _startListenAll,
+      onCancel: _stopListenAll
+    );
   }
 
   Stream<ActivitySnapshot> getActivityChangeStream(ActivityReference ref) {
@@ -74,6 +69,55 @@ class ActivityTrackingManager {
   Future<Stream<ActivitySnapshot>> joinActivity(ActivityReference ref) async {
     _startTrackActivity(ref, await ActivityHandler.join(ref));
     return getActivityChangeStream(ref);
+  }
+
+  void _stopListenAll() {
+    assert(_firestoreActivityListener != null && !_listeningAll);
+
+    _trackedActivities.forEach((ref) => _stopListen(ref));
+
+    _firestoreActivityListener.cancel();
+    _firestoreActivityListener = null;
+  }
+
+  void _startListenAll() {
+    assert(_firestoreActivityListener == null && _listeningAll);
+
+    _trackedActivities.forEach((ref) => _startListen(ref));
+
+    ///TODO: Update when user changes
+    _firestoreActivityListener = UserModel.instance.userActivitiesDocument.snapshots().listen((document) {
+      HashSet<ActivityReference> newGlobalActivities = HashSet.from((document.data["activities"] as List<dynamic>).cast<String>().map((e) => ActivityReference(e)));
+
+      Iterable<ActivityReference> addedGlobalActivities = newGlobalActivities.where((element) => !_prevGlobalActivities.contains(element));
+      Iterable<ActivityReference> removedGlobalActivities = _prevGlobalActivities.where((element) => !newGlobalActivities.contains(element));
+
+      addedGlobalActivities.forEach((ref) {
+        Future.microtask(() async {
+          if (!_trackedActivities.contains(ref)){
+            _startTrackActivity(ref, await ActivityHandler.fromExisting(ref));
+          }
+        });
+      });
+
+      removedGlobalActivities.forEach((ref) {
+        _stopTrackActivity(ref);
+      });
+    });
+  }
+
+  void _startListen(ActivityReference ref) {
+    assert(_listeningAll);
+
+    _allActivitiesSnapshotListeners[ref] = _snapshotControllers[ref].stream.listen((snapshot) {
+      _allActivitiesStreamController.add(_activityHandlers.entries.map((kv) => kv.value.latestSnapshot).toList());
+    });
+  }
+
+  void _stopListen(ActivityReference ref) {
+    assert(!_listeningAll);
+
+    (_allActivitiesSnapshotListeners..[ref].cancel()).remove(ref);
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {
@@ -102,12 +146,15 @@ class ActivityTrackingManager {
     handler.addListener(() {
       if (sendEvents) _snapshotControllers[ref].add(handler.latestSnapshot);
     });
+
+    if (_listeningAll) _startListen(ref);
   }
 
   void _stopTrackActivity(ActivityReference ref) {
     assert(_trackedActivities.contains(ref));
     _trackedActivities.remove(ref);
 
+    if (_listeningAll) _stopListen(ref);
     (_activityHandlers..[ref].dispose()).remove(ref);
     (_snapshotControllers..[ref].close()).remove(ref);
   }

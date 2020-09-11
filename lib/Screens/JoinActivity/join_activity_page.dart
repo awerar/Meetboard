@@ -6,8 +6,10 @@ import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
+import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 
-/*class JoinActivityPage extends StatefulWidget {
+class JoinActivityPage extends StatefulWidget {
   @override
   _JoinActivityPageState createState() => _JoinActivityPageState();
 }
@@ -168,18 +170,20 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
   }
 
   void _join(String id) async {
-    if (_isLoading) return;
+    if (!_isLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
-    setState(() {
-      _isLoading = true;
-    });
     bool worked = true;
-
     try {
-      await CloudFunctions.instance.getHttpsCallable(functionName: "joinActivity").call({"id": id});
-    }  catch(e) {
+      await ActivityTrackingManager.instance.joinActivity(ActivityReference(id));
+    } catch (e, s) {
+      debugPrint("Failed to jon activity with exception:" + e.toString() + "\n" + s.toString());
       worked = false;
     }
+
     Navigator.pop(context, worked);
     setState(() {
       _isLoading = false;
@@ -198,4 +202,4 @@ class _JoinActivityPageState extends State<JoinActivityPage> {
   void _unfocus() {
     FocusScope.of(context).requestFocus(new FocusNode());
   }
-}*/
+}

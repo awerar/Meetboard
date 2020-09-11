@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 import 'package:meetboard/Screens/JoinActivity/join_activity_page.dart';
 import 'package:meetboard/Screens/ActivityPage/activity_page.dart';
@@ -23,12 +24,12 @@ class MainPage extends StatelessWidget {
         future: ActivityTrackingManager.initialized,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return StreamBuilder<List<ActivityPreviewSnapshot>>(
-                initialData: ActivityTrackingManager.instance.previews,
-                stream: ActivityTrackingManager.instance.previewsStream,
+            return StreamBuilder<List<ActivitySnapshot>>(
+                stream: ActivityTrackingManager.instance.allActivitiesStream,
                 builder: (context, snapshot) {
                   return _buildPreviewList(
-                      context, snapshot.hasData ? snapshot.data : []);
+                      context, snapshot.hasData ? snapshot.data : []
+                  );
                 }
             );
           } else {
@@ -36,11 +37,11 @@ class MainPage extends StatelessWidget {
           }
         },
       ),
-      //floatingActionButton: MainPageSpeedDial(),
+      floatingActionButton: MainPageSpeedDial(),
     );
   }
 
-  Widget _buildPreviewList(BuildContext context, List<ActivityPreviewSnapshot> previews) {
+  Widget _buildPreviewList(BuildContext context, List<ActivitySnapshot> previews) {
     if (previews.length > 0) {
       List<int> categoryDays = [
         0, 1, 6, 30, 365, 99999999
@@ -53,9 +54,9 @@ class MainPage extends StatelessWidget {
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(ActivityPreviewSnapshot preview in previews) {
+      for(ActivitySnapshot snapshot in previews) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-        int dayDiff = preview.time.difference(today).inDays;
+        int dayDiff = snapshot.time.difference(today).inDays;
 
         bool newCategory = false;
         while(dayDiff > categoryDays[category] && category < categoryDays.length) {
@@ -71,7 +72,7 @@ class MainPage extends StatelessWidget {
           ));
           tiles.add(Divider());
         }
-        tiles.add(ActivityCard(preview: preview));
+        tiles.add(ActivityCard(snapshot: snapshot));
         first = false;
       }
 
@@ -89,8 +90,8 @@ class MainPage extends StatelessWidget {
 
 
 class ActivityCard extends StatefulWidget {
-  final ActivityPreviewSnapshot preview;
-  ActivityCard({@required this.preview});
+  final ActivitySnapshot snapshot;
+  ActivityCard({@required this.snapshot});
 
   @override
   _ActivityCardState createState() => _ActivityCardState();
@@ -138,25 +139,25 @@ class _ActivityCardState extends State<ActivityCard> {
               child: Stack(
                 children: <Widget>[
                   Container(
-                    color: widget.preview.coming ? green : red,
+                    color: widget.snapshot.currentUser.coming ? green : red,
                     constraints: BoxConstraints.expand(),
                   ),
-                  Align(child: Icon(widget.preview.coming ? Icons.check : Icons.close, color: Colors.white), alignment: Alignment.center,)
+                  Align(child: Icon(widget.snapshot.currentUser.coming ? Icons.check : Icons.close, color: Colors.white), alignment: Alignment.center,)
                 ],
               ),
             ),
             Flexible(
                 child: ListTile(
-                  title: Text(widget.preview.name, ),
+                  title: Text(widget.snapshot.name, ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(_dateFormat.format(widget.preview.time)),
-                      ActivityTimeText(time: widget.preview.time,)
+                      Text(_dateFormat.format(widget.snapshot.time)),
+                      ActivityTimeText(time: widget.snapshot.time,)
                     ],
                   ),
-                  trailing: Text(widget.preview.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),
+                  trailing: Text(widget.snapshot.currentUser.coming ? "" : "Not Coming", style: _theme.textTheme.bodyText2.copyWith(inherit: true, color: _theme.colorScheme.error),),
                   isThreeLine: true,
                 )
             )

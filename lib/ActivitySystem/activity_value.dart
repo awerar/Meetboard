@@ -66,7 +66,7 @@ class ActivityUsersValue extends IActivityValue<List<UserDataSnapshot>> {
 
   @override
   List<UserDataSnapshot> get _currentValue => _handler.listeningToUpdates ?
-    (HashSet.from(_globalUsers)..addAll(_localAddedUsers)..removeAll(_localRemovedUsers)).toList() :
+    (HashSet<UserDataSnapshot>.from(_globalUsers)..addAll(_localAddedUsers)..removeAll(_localRemovedUsers)).toList() :
     _localAddedUsers.toList();
 
   ActivityUsersValue.local(List<UserDataSnapshot> users) : _globalUsers = HashSet(), _localAddedUsers = HashSet.from(users), _localRemovedUsers = HashSet();
