@@ -14,48 +14,21 @@ import 'activity_value.dart';
 //Starts not connected, and can connect and disconnect
 class ActivityHandler with ChangeNotifier {
   final ActivityReference ref;
+  final ActivityData _activityData;
 
   StreamSubscription _activityListener;
   bool get listeningToUpdates => _activityListener != null;
 
-  ActivitySnapshot _latestSnapshot;
-  ActivitySnapshot get latestSnapshot => _latestSnapshot;
+  ActivitySnapshot get currentSnapshot => _activityData.currentValue;
 
-  final ActivityValue<String> _name;
-  final ActivityValue<DateTime> _time;
-  final UserListActivityValue _users;
-  Map<String, IActivityValue> get _valuesMap => {
-    "name": _name,
-    "time": _time,
-    "users": _users,
-  };
-  List<IActivityValue> get _values => _valuesMap.values.toList();
-
-  ActivityHandler._fromLocalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
-    _name = ActivityValue.local(name),
-    _time = ActivityValue.local(time),
-    _users = UserListActivityValue.local(users.toList()) {
-    _linkValues();
+  ActivityHandler._(this.ref, this._activityData) {
+    _activityData.linkParent(this);
   }
 
-  ActivityHandler._fromGlobalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
-        _name = ActivityValue.global(name),
-        _time = ActivityValue.global(time),
-        _users = UserListActivityValue.global(users.toList()) {
-    _linkValues();
-  }
-  
-  ActivityHandler._fromValues(this.ref, this._name, this._time, this._users);
-
-  ActivityHandler._fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromGlobalValues(
-      ref,
-      doc.data["name"],
-      (doc.data["time"] as Timestamp).toDate(),
-      _parseUsers(doc.data["users"])
-  );
+  ActivityHandler._fromActivityData(ActivityData activityData) : this._(activityData.currentValue.ref, activityData);
 
   static Future<ActivityHandler> fromExisting(ActivityReference ref) async {
-    return ActivityHandler._fromDocumentSnapshot(ref, await ref.activityDocument.get());
+    return ActivityHandler._fromActivityData(ActivityData.global(ActivitySnapshot.fromData(ref, (await ref.activityDocument.get()).data)));
   }
 
   static Future<ActivityHandler> create(String name, DateTime time) async {
@@ -66,7 +39,7 @@ class ActivityHandler with ChangeNotifier {
     ActivityReference ref = ActivityReference(result.data as String);
 
     UserDataSnapshot creator = UserDataSnapshot.getDefaultCreateUser();
-    return ActivityHandler._fromLocalValues(ref, name, time, [creator]);
+    return ActivityHandler._fromActivityData(ActivityData.local(ActivitySnapshot(ref: ref, name: name, time: time, users: [creator])));
   }
 
   static Future<ActivityHandler> join(ActivityReference ref) async {
@@ -74,46 +47,20 @@ class ActivityHandler with ChangeNotifier {
       "id": ref.id
     });
 
-    DocumentSnapshot doc = await ref.activityDocument.get();
-    return ActivityHandler._fromValues(
-        ref,
-        ActivityValue.global(doc.data["name"]),
-        ActivityValue.global((doc.data["time"] as Timestamp).toDate()), 
-        UserListActivityValue.global(_parseUsers(doc.data["users"]))..addUserLocally(UserDataSnapshot.getDefaultJoinUser())
-    );
+    return await ActivityHandler.fromExisting(ref);
   }
 
-  void _linkValues() {
-    _values.forEach((element) {
-      element.link(this);
-      element.addListener(_onActivityChanged);
-    });
-  }
-
-  void _onActivityChanged() {
-    _latestSnapshot = ActivitySnapshot(
-      ref: ref,
-      name: _name.currentValue,
-      time: _time.currentValue,
-      users: _users.currentValue.toList()
-    );
-
-    notifyListeners();
-  }
-
-  Future<void> write(ActivityWriteFunc writeFunc) {
-    return ActivityWriter._write(writeFunc, this);
+  Future<void> write(void Function(ActivityDataWriter writer) writeFunc) {
+    ActivityDataWriter writer = ActivityDataWriter(_activityData);
+    writeFunc(writer);
+    return writer.getChanges().apply();
   }
 
   void startListen() {
     assert(!listeningToUpdates);
 
     _activityListener = ref.activityDocument.snapshots().listen((doc) {
-      Iterable<UserDataSnapshot> globalUsers = _parseUsers(doc.data["users"]);
-      _users.setGlobalUsers(globalUsers);
-
-      _name.setGlobalValue(doc.data["name"]);
-      _time.setGlobalValue((doc.data["time"] as Timestamp).toDate());
+      _activityData.setGlobalValue(ActivitySnapshot.fromData(ref, doc.data));
     });
   }
 
@@ -123,37 +70,9 @@ class ActivityHandler with ChangeNotifier {
     _activityListener.cancel();
     _activityListener = null;
   }
-
-  static List<UserDataSnapshot> _parseUsers(dynamic userData) {
-    return Map<String, dynamic>.from(userData)
-        .map((key, value) => MapEntry(key, Map<String, dynamic>.from(value)))
-        .entries.map((e) => UserDataSnapshot.fromData(e.key, e.value)).toList();
-  }
 }
 
-typedef ActivityWriteFunc = void Function(ActivityWriter writer);
-
-class ActivityWriter {
-  final ActivityHandler _handler;
-  ActivityReference get ref => _handler.ref;
-
-  final ActivityValueWriter<String> name;
-  final ActivityValueWriter<DateTime> time;
-  final UserListActivityValueWriter users;
-  List<IActivityValueWriter> get _writers => [name, time, users];
-
-  ActivityWriter._(this._handler) :
-    name = ActivityValueWriter(_handler._name, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"name": val})),
-    time = ActivityValueWriter(_handler._time, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"time": Timestamp.fromDate(val)})),
-    users = UserListActivityValueWriter(_handler._users);
-
-  static Future<void> _write(ActivityWriteFunc writeFunc, ActivityHandler handler) {
-    ActivityWriter writer = ActivityWriter._(handler);
-    writeFunc(writer);
-
-    return writer._writers.fold<FirestoreChange>(FirestoreChange.none(), (acc, change) => acc.merge(change.getChanges())).apply();
-  }
-}
+typedef ActivityWriteFunc = void Function(ActivityDataWriter writer);
 
 class FirestoreChange {
   final Map<DocumentReference, Map<String, dynamic>> changes;

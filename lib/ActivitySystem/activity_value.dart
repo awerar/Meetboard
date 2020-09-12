@@ -5,6 +5,7 @@ import 'dart:collection';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/ActivitySystem/user_reference.dart';
 import 'package:meetboard/Models/user_model.dart';
 
@@ -12,97 +13,164 @@ import 'activity_handler.dart';
 import 'user_data_snapshot.dart';
 
 //Keeps track of global and local data, and merges them for the theoretical current global data
-abstract class IActivityValue<T> with ChangeNotifier {
-  ActivityHandler _handler;
-
-  void link(ActivityHandler handler) {
-    _handler = handler;
-  }
+abstract class IActivityData<T> with ChangeNotifier {
+  bool _linked = false;
 
   T get currentValue;
 
-  bool get _online => _handler.listeningToUpdates;
+  void linkParent(ChangeNotifier parent) {
+    if (!_linked) {
+      addListener(() => parent.notifyListeners());
+      _linked = true;
+    }
+  }
 }
 
 //Acts as a wrapper for an activity value only exposing part of the interface
 //Keeps track of changes and reports what to change in the database for these local changes to become global
-abstract class IActivityValueWriter<T, C extends IActivityValue<T>> {
-  final C _activityValue;
+abstract class IActivityDataWriter<T, C extends IActivityData<T>> {
+  final C _activityData;
   final T _initialValue;
+  final ActivityReference _ref;
 
-  IActivityValueWriter._(this._activityValue, this._initialValue);
-  IActivityValueWriter(C activityValue) : this._(activityValue, activityValue.currentValue);
+  IActivityDataWriter._(this._activityData, this._initialValue, this._ref);
+  IActivityDataWriter(C activityData, ActivityReference ref) : this._(activityData, activityData.currentValue, ref);
 
-  T get currentValue => _activityValue.currentValue;
+  T get currentValue => _activityData.currentValue;
 
   FirestoreChange getChanges();
 }
 
-class ActivityValue<T> extends IActivityValue<T> {
+class ActivityData extends IActivityData<ActivitySnapshot> {
+  final ActivityReference _ref;
+
+  final ActivityDataField<DateTime> _time;
+  final ActivityDataField<String> _name;
+  final ActivityDataUserList _users;
+
+  Iterable<IActivityData> get _children => [_time, _name, _users];
+
+  ActivityData(this._ref, this._time, this._name, this._users) {
+    _children.forEach((data) => data.linkParent(this));
+  }
+
+  ActivityData.global(ActivitySnapshot globalData) : this(
+    globalData.ref,
+    ActivityDataField.global(globalData.time),
+    ActivityDataField.global(globalData.name),
+    ActivityDataUserList.global(globalData.users.values.toList())
+  );
+
+  ActivityData.local(ActivitySnapshot globalData) : this(
+      globalData.ref,
+      ActivityDataField.local(globalData.time),
+      ActivityDataField.local(globalData.name),
+      ActivityDataUserList.local(globalData.users.values.toList())
+  );
+
+  void setGlobalValue(ActivitySnapshot globalValue) {
+    _time.setGlobalValue(globalValue.time);
+    _name.setGlobalValue(globalValue.name);
+    _users.setGlobalUsers(globalValue.users.values.toList());
+  }
+
   @override
-  T get currentValue => _hasLocalValue ? _localValue : _globalValue;
-  bool get _hasLocalValue => _online ? _localValue != null : true;
-
-  T _globalValue;
-  T _localValue;
-
-  ActivityValue.local(T value) :
-        _localValue = value;
-
-  ActivityValue.global(T value) :
-        _globalValue = value,
-        _localValue = value;
-
-  void setGlobalValue(T value) {
-    _globalValue = value;
-    if (_localValue == _globalValue) _localValue = null;
-
-    notifyListeners();
-  }
-
-  void setLocalValue(T value) {
-    _localValue = value;
-
-    notifyListeners();
-  }
+  ActivitySnapshot get currentValue => ActivitySnapshot(
+      ref: _ref,
+      name: _name.currentValue,
+      time: _time.currentValue,
+      users: _users.currentValue.toList()
+  );
 }
 
-class ActivityValueWriter<Q> extends IActivityValueWriter<Q, ActivityValue<Q>> {
-  final FirestoreChange Function(Q value) _getChange;
+class ActivityDataWriter extends IActivityDataWriter<ActivitySnapshot, ActivityData> {
+  ActivityDataWriter(ActivityData activityData) : super(activityData, activityData._ref) {
+    _usersWriter = ActivityDataUserListWriter(activityData._users, activityData._ref);
+  }
 
-  ActivityValueWriter(ActivityValue<Q> activityValue, this._getChange) : super(activityValue);
+  ActivityDataUserListWriter _usersWriter;
+  ActivityDataUserListWriter get users => _usersWriter;
+
+  void setTime(DateTime time) {
+    _activityData._time.setLocalValue(time);
+  }
+
+  void setName(String name) {
+    _activityData._name.setLocalValue(name);
+  }
 
   @override
   FirestoreChange getChanges() {
-    return _activityValue.currentValue != _initialValue ? _getChange(currentValue) : FirestoreChange.none();
-  }
-
-  void updateValue(Q Function(Q currentValue) modifier) {
-    Q res = modifier(_activityValue.currentValue);
-    assert(res != null);
-
-    _activityValue.setLocalValue(res);
+    FirestoreChange change = users.getChanges();
+    if (_activityData.currentValue.time != _initialValue.time) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "time": Timestamp.fromDate(_activityData._time.currentValue) }));
+    if (_activityData.currentValue.name != _initialValue.name) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "name": _activityData._time.currentValue }));
+    return change;
   }
 }
 
-class UserListActivityValue extends IActivityValue<List<UserDataSnapshot>> {
+class ActivityDataField<T> extends IActivityData<T> {
+  @override
+  T get currentValue => _value;
+
+  T _value;
+  bool _synced;
+
+  ActivityDataField.global(this._value) : _synced = true;
+  ActivityDataField.local(this._value) : _synced = false;
+
+  void setGlobalValue(T globalValue) {
+    if (_synced) _value = globalValue;
+    else if (globalValue == _value) _synced = true;
+
+    notifyListeners();
+  }
+
+  void setLocalValue(T localValue) {
+    _value = localValue;
+    _synced = false;
+
+    notifyListeners();
+  }
+}
+
+class ActivityDataFieldWriter<Q> extends IActivityDataWriter<Q, ActivityDataField<Q>> {
+  final FirestoreChange Function(Q value) _getChange;
+
+  ActivityDataFieldWriter(ActivityDataField<Q> activityValue, this._getChange, ActivityReference ref) : super(activityValue, ref);
+
+  @override
+  FirestoreChange getChanges() {
+    return _activityData.currentValue != _initialValue ? _getChange(currentValue) : FirestoreChange.none();
+  }
+
+  void updateValue(Q Function(Q currentValue) modifier) {
+    Q res = modifier(_activityData.currentValue);
+    assert(res != null);
+
+    _activityData.setLocalValue(res);
+  }
+}
+
+class ActivityDataUserList extends IActivityData<List<UserDataSnapshot>> {
   final HashSet<UserReference> _localAddedUsers, _localRemovedUsers;
-  final Map<UserReference, UserActivityValue> _currentUsers;
+  final Map<UserReference, ActivityDataUser> _currentUsers;
 
   @override
   List<UserDataSnapshot> get currentValue => _currentUsers.values.map((e) => e.currentValue).toList();
 
-  UserListActivityValue.local(List<UserDataSnapshot> users) :
-        _localAddedUsers = HashSet.from(users.map((e) => e.ref)),
-        _localRemovedUsers = HashSet(),
-        _currentUsers = Map.fromIterable(users, key: (d) => d.ref, value: (d) => UserActivityValue.local(d));
+  static ActivityDataUserList local(List<UserDataSnapshot> users) {
+    ActivityDataUserList list = ActivityDataUserList.empty();
+    users.forEach((user) => list.addUserLocally(user));
+    return list;
+  }
 
-  UserListActivityValue.global(List<UserDataSnapshot> users) :
-        _localAddedUsers = HashSet(),
-        _localRemovedUsers = HashSet(),
-        _currentUsers = Map.fromIterable(users, key: (d) => d.ref, value: (d) => UserActivityValue.global(d));
+  static ActivityDataUserList global(List<UserDataSnapshot> users) {
+    ActivityDataUserList list = ActivityDataUserList.empty();
+    list.setGlobalUsers(users);
+    return list;
+  }
 
-  UserListActivityValue.noValue() : _localAddedUsers = HashSet(), _localRemovedUsers = HashSet(), _currentUsers = Map();
+  ActivityDataUserList.empty() : _localAddedUsers = HashSet(), _localRemovedUsers = HashSet(), _currentUsers = Map();
 
   void setGlobalUsers(List<UserDataSnapshot> usersData) {
     Iterable<UserReference> users = usersData.map((e) => e.ref);
@@ -111,7 +179,11 @@ class UserListActivityValue extends IActivityValue<List<UserDataSnapshot>> {
     _localRemovedUsers.removeAll(_localRemovedUsers.where((user) => !users.contains(user)));
 
     usersData.where((userData) => !_localRemovedUsers.contains(userData.ref)).forEach((userData) {
-      _currentUsers[userData.ref].setGlobalData(userData);
+      if (_currentUsers.containsKey(userData.ref)) {
+        _currentUsers[userData.ref].setGlobalData(userData);
+      } else {
+        _currentUsers[userData.ref] = ActivityDataUser.global(userData)..linkParent(this);
+      }
     });
 
     notifyListeners();
@@ -140,20 +212,20 @@ class UserListActivityValue extends IActivityValue<List<UserDataSnapshot>> {
       _localAddedUsers.add(user.ref);
     }
 
-    _currentUsers[user.ref] = UserActivityValue.local(user);
+    _currentUsers[user.ref] = ActivityDataUser.local(user)..linkParent(this);
 
     notifyListeners();
   }
 }
 
 //At the moment we don't support adding or removing users outside the API, nor modifying values of other users than the current user
-class UserListActivityValueWriter extends IActivityValueWriter<List<UserDataSnapshot>, UserListActivityValue> {
-  UserListActivityValueWriter(UserListActivityValue activityValue) : super(activityValue) {
-    _currentUserWriter = UserActivityValueWriter(activityValue._currentUsers[UserModel.instance.user]);
+class ActivityDataUserListWriter extends IActivityDataWriter<List<UserDataSnapshot>, ActivityDataUserList> {
+  ActivityDataUserListWriter(ActivityDataUserList activityValue, ActivityReference ref) : super(activityValue, ref) {
+    _currentUserWriter = ActivityDataUserWriter(activityValue._currentUsers[UserModel.instance.user], ref);
   }
 
- UserActivityValueWriter _currentUserWriter;
-  UserActivityValueWriter get currentUser => _currentUserWriter;
+ ActivityDataUserWriter _currentUserWriter;
+  ActivityDataUserWriter get currentUser => _currentUserWriter;
 
   @override
   FirestoreChange getChanges() {
@@ -161,33 +233,30 @@ class UserListActivityValueWriter extends IActivityValueWriter<List<UserDataSnap
   }
 }
 
-class UserActivityValue extends IActivityValue<UserDataSnapshot> {
+class ActivityDataUser extends IActivityData<UserDataSnapshot> {
   final UserReference ref;
 
-  final ActivityValue<ActivityRole> _role;
-  final ActivityValue<bool> _coming;
-  List<IActivityValue> get _values => [ _role, _coming];
+  final ActivityDataField<ActivityRole> _role;
+  final ActivityDataField<bool> _coming;
+  Iterable<IActivityData> get _children => [_role, _coming];
 
   String _username;
 
-  UserActivityValue(this.ref, this._role, this._coming, this._username) {
-    _values.forEach((value) {
-      value.link(_handler);
-      value.addListener(() => notifyListeners());
-    });
+  ActivityDataUser(this.ref, this._role, this._coming, this._username) {
+    _children.forEach((child) => child.linkParent(this));
   }
 
-  UserActivityValue.global(UserDataSnapshot data) : this(
+  ActivityDataUser.global(UserDataSnapshot data) : this(
     data.ref,
-    ActivityValue.global(data.role),
-    ActivityValue.global(data.coming),
+    ActivityDataField.global(data.role),
+    ActivityDataField.global(data.coming),
     data.username
   );
 
-  UserActivityValue.local(UserDataSnapshot data) : this(
+  ActivityDataUser.local(UserDataSnapshot data) : this(
       data.ref,
-      ActivityValue.local(data.role),
-      ActivityValue.local(data.coming),
+      ActivityDataField.local(data.role),
+      ActivityDataField.local(data.coming),
       data.username
   );
 
@@ -202,19 +271,19 @@ class UserActivityValue extends IActivityValue<UserDataSnapshot> {
 }
 
 //At the moment we only support changing the coming status of a user
-class UserActivityValueWriter extends IActivityValueWriter<UserDataSnapshot, UserActivityValue> {
-  UserActivityValueWriter(UserActivityValue activityValue) : super(activityValue);
+class ActivityDataUserWriter extends IActivityDataWriter<UserDataSnapshot, ActivityDataUser> {
+  ActivityDataUserWriter(ActivityDataUser activityValue, ActivityReference ref) : super(activityValue, ref);
 
   @override
   FirestoreChange getChanges() {
     FirestoreChange change = FirestoreChange.none();
-    if(_initialValue.coming !=_activityValue.currentValue.coming) change = change.merge(FirestoreChange.single(
-            _activityValue.ref.getActivityUserDocument(_activityValue._handler.ref),
-            { "coming": _activityValue.currentValue.coming}));
+    if(_initialValue.coming !=_activityData.currentValue.coming) change = change.merge(FirestoreChange.single(
+            _activityData.ref.getActivityUserDocument(_ref),
+            { "coming": _activityData.currentValue.coming}));
     return change;
   }
 
   void setComing(bool coming) {
-    _activityValue._coming.setLocalValue(coming);
+    _activityData._coming.setLocalValue(coming);
   }
 }

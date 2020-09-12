@@ -110,7 +110,7 @@ class ActivityTrackingManager {
     assert(_listeningAll);
 
     _allActivitiesSnapshotListeners[ref] = _snapshotControllers[ref].stream.listen((snapshot) {
-      _allActivitiesStreamController.add(_activityHandlers.entries.map((kv) => kv.value.latestSnapshot).toList());
+      _allActivitiesStreamController.add(_activityHandlers.entries.map((kv) => kv.value.currentSnapshot).toList());
     });
   }
 
@@ -144,7 +144,7 @@ class ActivityTrackingManager {
 
     _snapshotControllers[ref] = controller;
     handler.addListener(() {
-      if (sendEvents) _snapshotControllers[ref].add(handler.latestSnapshot);
+      if (sendEvents) _snapshotControllers[ref].add(handler.currentSnapshot);
     });
 
     if (_listeningAll) _startListen(ref);
