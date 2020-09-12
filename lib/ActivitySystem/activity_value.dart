@@ -5,11 +5,13 @@ import 'dart:collection';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
+import 'package:meetboard/ActivitySystem/user_reference.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 import 'activity_handler.dart';
 import 'user_data_snapshot.dart';
 
+//Keeps track of global and local data, and merges them for the theoretical current global data
 abstract class IActivityValue<T> with ChangeNotifier {
   ActivityHandler _handler;
 
@@ -17,22 +19,29 @@ abstract class IActivityValue<T> with ChangeNotifier {
     _handler = handler;
   }
 
-  T get _currentValue;
-  bool get hasValue;
+  T get currentValue;
 
-  T get currentValue {
-    assert(hasValue);
-    return _currentValue;
-  }
+  bool get _online => _handler.listeningToUpdates;
+}
+
+//Acts as a wrapper for an activity value only exposing part of the interface
+//Keeps track of changes and reports what to change in the database for these local changes to become global
+abstract class IActivityValueWriter<T, C extends IActivityValue<T>> {
+  final C _activityValue;
+  final T _initialValue;
+
+  IActivityValueWriter._(this._activityValue, this._initialValue);
+  IActivityValueWriter(C activityValue) : this._(activityValue, activityValue.currentValue);
+
+  T get currentValue => _activityValue.currentValue;
+
+  FirestoreChange getChanges();
 }
 
 class ActivityValue<T> extends IActivityValue<T> {
   @override
-  T get _currentValue => _hasLocalValue ? _localValue : _globalValue;
-  bool get _hasLocalValue => _handler.listeningToUpdates ? _localValue != null : true;
-
-  @override
-  bool get hasValue => _hasLocalValue ? _localValue != null : _globalValue != null;
+  T get currentValue => _hasLocalValue ? _localValue : _globalValue;
+  bool get _hasLocalValue => _online ? _localValue != null : true;
 
   T _globalValue;
   T _localValue;
@@ -58,81 +67,14 @@ class ActivityValue<T> extends IActivityValue<T> {
   }
 }
 
-class ActivityUsersValue extends IActivityValue<List<UserDataSnapshot>> {
-  final HashSet<UserDataSnapshot> _globalUsers, _localAddedUsers, _localRemovedUsers;
-
-  @override
-  bool get hasValue => _handler.listeningToUpdates ? _globalUsers.length != 0 : _localAddedUsers.length != 0;
-
-  @override
-  List<UserDataSnapshot> get _currentValue => _handler.listeningToUpdates ?
-    (HashSet<UserDataSnapshot>.from(_globalUsers)..addAll(_localAddedUsers)..removeAll(_localRemovedUsers)).toList() :
-    _localAddedUsers.toList();
-
-  ActivityUsersValue.local(List<UserDataSnapshot> users) : _globalUsers = HashSet(), _localAddedUsers = HashSet.from(users), _localRemovedUsers = HashSet();
-  ActivityUsersValue.global(List<UserDataSnapshot> users) : _globalUsers = HashSet.from(users), _localAddedUsers = HashSet(), _localRemovedUsers = HashSet();
-  ActivityUsersValue.noValue() : _globalUsers = HashSet(), _localAddedUsers = HashSet(), _localRemovedUsers = HashSet();
-
-  void setGlobalUsers(List<UserDataSnapshot> users) {
-    Iterable<UserDataSnapshot> addedUsers = users.where((element) => !_globalUsers.contains(element));
-    addedUsers.forEach((element) {
-      _localAddedUsers.remove(element);
-    });
-
-    Iterable<UserDataSnapshot> removedUsers = _globalUsers.where((element) => !users.contains(element));
-    removedUsers.forEach((element) {
-      _localRemovedUsers.remove(element);
-    });
-
-    _globalUsers.clear();
-    _globalUsers.addAll(users);
-
-    notifyListeners();
-  }
-
-  void removeUser(UserDataSnapshot user) {
-    assert(_globalUsers.contains(user));
-    _localRemovedUsers.remove(user);
-
-    if (_localAddedUsers.contains(user)) _localAddedUsers.remove(user);
-
-    notifyListeners();
-  }
-
-  void addUser(UserDataSnapshot user) {
-    assert(!_globalUsers.contains(user));
-    _localRemovedUsers.add(user);
-
-    if (_localRemovedUsers.contains(user)) _localRemovedUsers.remove(user);
-
-    notifyListeners();
-  }
-}
-
-//Acts as a wrapper for an activity value only exposing part of the interface
-abstract class IActivityValueWriter<T, C extends IActivityValue<T>> {
-  final ActivityReference _ref;
-  final C _activityValue;
-
-  IActivityValueWriter(this._ref, this._activityValue);
-
-  T get currentValue;
-
-  FirestoreChange getChanges();
-}
-
 class ActivityValueWriter<Q> extends IActivityValueWriter<Q, ActivityValue<Q>> {
-  final Q _startValue;
   final FirestoreChange Function(Q value) _getChange;
 
-  ActivityValueWriter(ActivityReference ref, ActivityValue<Q> activityValue, this._getChange) : _startValue = activityValue.currentValue, super(ref, activityValue);
-
-  @override
-  Q get currentValue => _activityValue._localValue;
+  ActivityValueWriter(ActivityValue<Q> activityValue, this._getChange) : super(activityValue);
 
   @override
   FirestoreChange getChanges() {
-    return _activityValue.currentValue != _startValue ? _getChange(currentValue) : FirestoreChange.none();
+    return _activityValue.currentValue != _initialValue ? _getChange(currentValue) : FirestoreChange.none();
   }
 
   void updateValue(Q Function(Q currentValue) modifier) {
@@ -143,36 +85,136 @@ class ActivityValueWriter<Q> extends IActivityValueWriter<Q, ActivityValue<Q>> {
   }
 }
 
-class ActivityUsersValueWriter extends IActivityValueWriter<List<UserDataSnapshot>, ActivityUsersValue> {
-  ActivityUsersValueWriter(ActivityReference ref, ActivityUsersValue activityValue) : super(ref, activityValue);
-
-  HashSet<UserDataSnapshot> _addedUsers = HashSet(), _removedUsers = HashSet();
+class UserListActivityValue extends IActivityValue<List<UserDataSnapshot>> {
+  final HashSet<UserReference> _localAddedUsers, _localRemovedUsers;
+  final Map<UserReference, UserActivityValue> _currentUsers;
 
   @override
-  List<UserDataSnapshot> get currentValue => _activityValue.currentValue;
+  List<UserDataSnapshot> get currentValue => _currentUsers.values.map((e) => e.currentValue).toList();
+
+  UserListActivityValue.local(List<UserDataSnapshot> users) :
+        _localAddedUsers = HashSet.from(users.map((e) => e.ref)),
+        _localRemovedUsers = HashSet(),
+        _currentUsers = Map.fromIterable(users, key: (d) => d.ref, value: (d) => UserActivityValue.local(d));
+
+  UserListActivityValue.global(List<UserDataSnapshot> users) :
+        _localAddedUsers = HashSet(),
+        _localRemovedUsers = HashSet(),
+        _currentUsers = Map.fromIterable(users, key: (d) => d.ref, value: (d) => UserActivityValue.global(d));
+
+  UserListActivityValue.noValue() : _localAddedUsers = HashSet(), _localRemovedUsers = HashSet(), _currentUsers = Map();
+
+  void setGlobalUsers(List<UserDataSnapshot> usersData) {
+    Iterable<UserReference> users = usersData.map((e) => e.ref);
+
+    _localAddedUsers.removeAll(users);
+    _localRemovedUsers.removeAll(_localRemovedUsers.where((user) => !users.contains(user)));
+
+    usersData.where((userData) => !_localRemovedUsers.contains(userData.ref)).forEach((userData) {
+      _currentUsers[userData.ref].setGlobalData(userData);
+    });
+
+    notifyListeners();
+  }
+
+  void removeUserLocally(UserReference ref) {
+    assert(ref != UserModel.instance.user);
+
+    if (_localAddedUsers.contains(ref)) {
+      _localAddedUsers.remove(ref);
+    } else {
+      _localRemovedUsers.add(ref);
+    }
+
+    _currentUsers.remove(ref);
+
+    notifyListeners();
+  }
+
+  void addUserLocally(UserDataSnapshot user) {
+    assert(user.ref != UserModel.instance.user);
+
+    if (_localRemovedUsers.contains(user.ref)) {
+      _localRemovedUsers.remove(user.ref);
+    } else {
+      _localAddedUsers.add(user.ref);
+    }
+
+    _currentUsers[user.ref] = UserActivityValue.local(user);
+
+    notifyListeners();
+  }
+}
+
+//At the moment we don't support adding or removing users outside the API, nor modifying values of other users than the current user
+class UserListActivityValueWriter extends IActivityValueWriter<List<UserDataSnapshot>, UserListActivityValue> {
+  UserListActivityValueWriter(UserListActivityValue activityValue) : super(activityValue) {
+    _currentUserWriter = UserActivityValueWriter(activityValue._currentUsers[UserModel.instance.user]);
+  }
+
+ UserActivityValueWriter _currentUserWriter;
+  UserActivityValueWriter get currentUser => _currentUserWriter;
 
   @override
   FirestoreChange getChanges() {
-    return FirestoreChange.none();
+    return _currentUserWriter.getChanges();
+  }
+}
+
+class UserActivityValue extends IActivityValue<UserDataSnapshot> {
+  final UserReference ref;
+
+  final ActivityValue<ActivityRole> _role;
+  final ActivityValue<bool> _coming;
+  List<IActivityValue> get _values => [ _role, _coming];
+
+  String _username;
+
+  UserActivityValue(this.ref, this._role, this._coming, this._username) {
+    _values.forEach((value) {
+      value.link(_handler);
+      value.addListener(() => notifyListeners());
+    });
   }
 
-  void addUser(UserDataSnapshot user) {
-    throw UnimplementedError();
-    assert(_activityValue._globalUsers.firstWhere((element) => element.uid == UserModel.instance.user.uid).role == ActivityRole.Owner);
+  UserActivityValue.global(UserDataSnapshot data) : this(
+    data.ref,
+    ActivityValue.global(data.role),
+    ActivityValue.global(data.coming),
+    data.username
+  );
 
-    if(_removedUsers.contains(user)) _removedUsers.remove(user);
-    _addedUsers.add(user);
+  UserActivityValue.local(UserDataSnapshot data) : this(
+      data.ref,
+      ActivityValue.local(data.role),
+      ActivityValue.local(data.coming),
+      data.username
+  );
 
-    _activityValue.addUser(user);
+  @override
+  UserDataSnapshot get currentValue => UserDataSnapshot(uid: ref.uid, username: _username, role: _role.currentValue, coming: _coming.currentValue);
+
+  void setGlobalData(UserDataSnapshot data) {
+    _username = data.username;
+    _role.setGlobalValue(data.role);
+    _coming.setGlobalValue(data.coming);
+  }
+}
+
+//At the moment we only support changing the coming status of a user
+class UserActivityValueWriter extends IActivityValueWriter<UserDataSnapshot, UserActivityValue> {
+  UserActivityValueWriter(UserActivityValue activityValue) : super(activityValue);
+
+  @override
+  FirestoreChange getChanges() {
+    FirestoreChange change = FirestoreChange.none();
+    if(_initialValue.coming !=_activityValue.currentValue.coming) change = change.merge(FirestoreChange.single(
+            _activityValue.ref.getActivityUserDocument(_activityValue._handler.ref),
+            { "coming": _activityValue.currentValue.coming}));
+    return change;
   }
 
-  void removeUser(UserDataSnapshot user) {
-    throw UnimplementedError();
-    assert(_activityValue._globalUsers.firstWhere((element) => element.uid == UserModel.instance.user.uid).role == ActivityRole.Owner);
-
-    if(_addedUsers.contains(user)) _addedUsers.remove(user);
-    _removedUsers.add(user);
-
-    _activityValue.removeUser(user);
+  void setComing(bool coming) {
+    _activityValue._coming.setLocalValue(coming);
   }
 }

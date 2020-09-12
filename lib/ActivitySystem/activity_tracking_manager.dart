@@ -86,7 +86,7 @@ class ActivityTrackingManager {
     _trackedActivities.forEach((ref) => _startListen(ref));
 
     ///TODO: Update when user changes
-    _firestoreActivityListener = UserModel.instance.userActivitiesDocument.snapshots().listen((document) {
+    _firestoreActivityListener = UserModel.instance.user.userActivitiesDocument.snapshots().listen((document) {
       HashSet<ActivityReference> newGlobalActivities = HashSet.from((document.data["activities"] as List<dynamic>).cast<String>().map((e) => ActivityReference(e)));
 
       Iterable<ActivityReference> addedGlobalActivities = newGlobalActivities.where((element) => !_prevGlobalActivities.contains(element));

@@ -23,33 +23,29 @@ class ActivityHandler with ChangeNotifier {
 
   final ActivityValue<String> _name;
   final ActivityValue<DateTime> _time;
-  final ActivityUsersValue _users;
-  final ActivityValue<bool> _coming;
+  final UserListActivityValue _users;
   Map<String, IActivityValue> get _valuesMap => {
     "name": _name,
     "time": _time,
     "users": _users,
-    "coming": _coming
   };
   List<IActivityValue> get _values => _valuesMap.values.toList();
 
   ActivityHandler._fromLocalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
     _name = ActivityValue.local(name),
     _time = ActivityValue.local(time),
-    _users = ActivityUsersValue.local(users.toList()),
-    _coming = ActivityValue.local(_parseComing(users)) {
+    _users = UserListActivityValue.local(users.toList()) {
     _linkValues();
   }
 
   ActivityHandler._fromGlobalValues(this.ref, String name, DateTime time, Iterable<UserDataSnapshot> users) :
         _name = ActivityValue.global(name),
         _time = ActivityValue.global(time),
-        _users = ActivityUsersValue.global(users.toList()),
-        _coming = ActivityValue.global(_parseComing(users)) {
+        _users = UserListActivityValue.global(users.toList()) {
     _linkValues();
   }
   
-  ActivityHandler._fromValues(this.ref, this._name, this._time, this._users, this._coming);
+  ActivityHandler._fromValues(this.ref, this._name, this._time, this._users);
 
   ActivityHandler._fromDocumentSnapshot(ActivityReference ref, DocumentSnapshot doc) : this._fromGlobalValues(
       ref,
@@ -83,8 +79,7 @@ class ActivityHandler with ChangeNotifier {
         ref,
         ActivityValue.global(doc.data["name"]),
         ActivityValue.global((doc.data["time"] as Timestamp).toDate()), 
-        ActivityUsersValue.global(_parseUsers(doc.data["users"]))..addUser(), 
-        ActivityValue.local(true)
+        UserListActivityValue.global(_parseUsers(doc.data["users"]))..addUserLocally(UserDataSnapshot.getDefaultJoinUser())
     );
   }
 
@@ -119,7 +114,6 @@ class ActivityHandler with ChangeNotifier {
 
       _name.setGlobalValue(doc.data["name"]);
       _time.setGlobalValue((doc.data["time"] as Timestamp).toDate());
-      _coming.setGlobalValue(_parseComing(globalUsers));
     });
   }
 
@@ -128,10 +122,6 @@ class ActivityHandler with ChangeNotifier {
 
     _activityListener.cancel();
     _activityListener = null;
-  }
-
-  static bool _parseComing(Iterable<UserDataSnapshot> users) {
-    return users.firstWhere((element) => element.uid == UserModel.instance.user.uid).coming;
   }
 
   static List<UserDataSnapshot> _parseUsers(dynamic userData) {
@@ -149,15 +139,13 @@ class ActivityWriter {
 
   final ActivityValueWriter<String> name;
   final ActivityValueWriter<DateTime> time;
-  final ActivityValueWriter<bool> coming;
-  final ActivityUsersValueWriter users;
-  List<IActivityValueWriter> get _writers => [name, time, coming, users];
+  final UserListActivityValueWriter users;
+  List<IActivityValueWriter> get _writers => [name, time, users];
 
   ActivityWriter._(this._handler) :
-    name = ActivityValueWriter(_handler.ref, _handler._name, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"name": val})),
-    time = ActivityValueWriter(_handler.ref, _handler._time, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"time": Timestamp.fromDate(val)})),
-    coming = ActivityValueWriter(_handler.ref, _handler._coming, (val) => FirestoreChange.single(_handler.ref.activityDocument.collection("users").document(UserModel.instance.user.uid), {"coming": val})),
-    users = ActivityUsersValueWriter(_handler.ref, _handler._users);
+    name = ActivityValueWriter(_handler._name, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"name": val})),
+    time = ActivityValueWriter(_handler._time, (val) => FirestoreChange.single(_handler.ref.activityDocument, {"time": Timestamp.fromDate(val)})),
+    users = UserListActivityValueWriter(_handler._users);
 
   static Future<void> _write(ActivityWriteFunc writeFunc, ActivityHandler handler) {
     ActivityWriter writer = ActivityWriter._(handler);

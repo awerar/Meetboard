@@ -2,18 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
+import 'package:meetboard/ActivitySystem/user_reference.dart';
 
 class UserModel extends ChangeNotifier {
   FirebaseUser _user;
-  DocumentReference _userDocument, _userActivitiesDocument;
-  CollectionReference _userActivityCollection;
   String _username;
 
   String get username => _username;
-  FirebaseUser get user => _user;
-  DocumentReference get userDocument => _userDocument;
-  DocumentReference get userActivitiesDocument => _userActivitiesDocument;
-  CollectionReference get userActivityCollection => _userActivityCollection;
+  UserReference get user => UserReference(_user.uid);
 
   GlobalKey<NavigatorState> _navigatorKey;
 
@@ -39,22 +35,19 @@ class UserModel extends ChangeNotifier {
   }
 
   void _handleUserDocument() async {
-    _userDocument = Firestore.instance.collection("users").document(_user.uid);
-    _userActivitiesDocument = _userDocument.collection("private_data").document("user_activities");
-    _userActivityCollection = _userActivitiesDocument.collection("user_activities");
-    DocumentSnapshot documentSnapshot = await _userDocument.get();
+    DocumentSnapshot documentSnapshot = await user.userDocument.get();
     if (!documentSnapshot.exists) await _initializeUserDocument();
     else await _readFromUserDocument();
   }
 
   Future<void> _initializeUserDocument() async {
     await Future.wait([
-      _userActivitiesDocument.setData({
+      user.userActivitiesDocument.setData({
         "activity_count": 0,
         "activities": []
       }),
       queryUsername().then((username) {
-        return _userDocument.setData({
+        return user.userDocument.setData({
           "username": username
         });
       })
@@ -62,7 +55,7 @@ class UserModel extends ChangeNotifier {
   }
 
   Future<void> _readFromUserDocument() async {
-    Map<String, dynamic> data = (await _userDocument.get()).data;
+    Map<String, dynamic> data = (await user.userDocument.get()).data;
     _username = data["username"];
   }
 
