@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:meetboard/ActivitySystem/activity_handler.dart';
 import 'package:meetboard/ActivitySystem/activity_reference.dart';
 import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
+import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
 import 'package:meetboard/Models/user_model.dart';
 
 typedef OnActivityChangeFunction = void Function(ActivitySnapshot snapshot);
@@ -95,7 +96,7 @@ class ActivityTrackingManager {
       addedGlobalActivities.forEach((ref) {
         Future.microtask(() async {
           if (!_trackedActivities.contains(ref)){
-            _startTrackActivity(ref, await ActivityHandler.fromExisting(ref));
+            _startTrackActivity(ref, await ActivityHandler.fromExisting(ref, UserDataSnapshot.defaultUser));
           }
         });
       });

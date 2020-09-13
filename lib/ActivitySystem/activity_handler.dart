@@ -27,8 +27,9 @@ class ActivityHandler with ChangeNotifier {
 
   ActivityHandler._fromActivityData(ActivityData activityData) : this._(activityData.currentValue.ref, activityData);
 
-  static Future<ActivityHandler> fromExisting(ActivityReference ref) async {
-    return ActivityHandler._fromActivityData(ActivityData.global(ActivitySnapshot.fromData(ref, (await ref.activityDocument.get()).data)));
+  static Future<ActivityHandler> fromExisting(ActivityReference ref, UserDataSnapshot defaultUser) async {
+    ActivityData activityData = ActivityData.global(ActivitySnapshot.fromData(ref, (await ref.activityDocument.get()).data), defaultUser);
+    return ActivityHandler._fromActivityData(activityData);
   }
 
   static Future<ActivityHandler> create(String name, DateTime time) async {
@@ -38,8 +39,8 @@ class ActivityHandler with ChangeNotifier {
     });
     ActivityReference ref = ActivityReference(result.data as String);
 
-    UserDataSnapshot creator = UserDataSnapshot.getDefaultCreateUser();
-    return ActivityHandler._fromActivityData(ActivityData.local(ActivitySnapshot(ref: ref, name: name, time: time, users: [creator])));
+    UserDataSnapshot creator = UserDataSnapshot.defaultCreateUser;
+    return ActivityHandler._fromActivityData(ActivityData.local(ActivitySnapshot(ref: ref, name: name, time: time, users: [creator]), UserDataSnapshot.defaultCreateUser));
   }
 
   static Future<ActivityHandler> join(ActivityReference ref) async {
@@ -47,7 +48,7 @@ class ActivityHandler with ChangeNotifier {
       "id": ref.id
     });
 
-    return await ActivityHandler.fromExisting(ref);
+    return await ActivityHandler.fromExisting(ref, UserDataSnapshot.defaultJoinUser);
   }
 
   Future<void> write(void Function(ActivityDataWriter writer) writeFunc) {

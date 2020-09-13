@@ -13,6 +13,7 @@ import 'activity_handler.dart';
 import 'user_data_snapshot.dart';
 
 //Keeps track of global and local data, and merges them for the theoretical current global data
+//Are handled safely away from the user
 abstract class IActivityData<T> with ChangeNotifier {
   bool _linked = false;
 
@@ -44,66 +45,71 @@ abstract class IActivityDataWriter<T, C extends IActivityData<T>> {
 class ActivityData extends IActivityData<ActivitySnapshot> {
   final ActivityReference _ref;
 
-  final ActivityDataField<DateTime> _time;
-  final ActivityDataField<String> _name;
-  final ActivityDataUserList _users;
+  final ActivityDataField<DateTime> time;
+  final ActivityDataField<String> name;
+  final ActivityDataUserList users;
 
-  Iterable<IActivityData> get _children => [_time, _name, _users];
+  Iterable<IActivityData> get _children => [time, name, users];
 
-  ActivityData(this._ref, this._time, this._name, this._users) {
+  ActivityData(this._ref, this.time, this.name, this.users) {
     _children.forEach((data) => data.linkParent(this));
   }
 
-  ActivityData.global(ActivitySnapshot globalData) : this(
+  ActivityData.global(ActivitySnapshot globalData, UserDataSnapshot defaultUser) : this(
     globalData.ref,
     ActivityDataField.global(globalData.time),
     ActivityDataField.global(globalData.name),
-    ActivityDataUserList.global(globalData.users.values.toList())
+    ActivityDataUserList.global(_getUsersWithDefault(globalData.users.values.toList(), defaultUser))
   );
 
-  ActivityData.local(ActivitySnapshot globalData) : this(
+  ActivityData.local(ActivitySnapshot globalData, UserDataSnapshot defaultUser) : this(
       globalData.ref,
       ActivityDataField.local(globalData.time),
       ActivityDataField.local(globalData.name),
-      ActivityDataUserList.local(globalData.users.values.toList())
+      ActivityDataUserList.local(_getUsersWithDefault(globalData.users.values.toList(), defaultUser))
   );
 
   void setGlobalValue(ActivitySnapshot globalValue) {
-    _time.setGlobalValue(globalValue.time);
-    _name.setGlobalValue(globalValue.name);
-    _users.setGlobalUsers(globalValue.users.values.toList());
+    time.setGlobalValue(globalValue.time);
+    name.setGlobalValue(globalValue.name);
+    users.setGlobalUsers(globalValue.users.values.toList());
+  }
+
+  static Iterable<UserDataSnapshot> _getUsersWithDefault(Iterable<UserDataSnapshot> users, UserDataSnapshot defaultUser) {
+    if (users.map((e) => e.ref).contains(UserModel.instance.user)) return users.toList();
+    else return users.toList()..add(defaultUser);
   }
 
   @override
   ActivitySnapshot get currentValue => ActivitySnapshot(
       ref: _ref,
-      name: _name.currentValue,
-      time: _time.currentValue,
-      users: _users.currentValue.toList()
+      name: name.currentValue,
+      time: time.currentValue,
+      users: users.currentValue.toList()
   );
 }
 
 class ActivityDataWriter extends IActivityDataWriter<ActivitySnapshot, ActivityData> {
   ActivityDataWriter(ActivityData activityData) : super(activityData, activityData._ref) {
-    _usersWriter = ActivityDataUserListWriter(activityData._users, activityData._ref);
+    _usersWriter = ActivityDataUserListWriter(activityData.users, activityData._ref);
   }
 
   ActivityDataUserListWriter _usersWriter;
   ActivityDataUserListWriter get users => _usersWriter;
 
   void setTime(DateTime time) {
-    _activityData._time.setLocalValue(time);
+    _activityData.time.setLocalValue(time);
   }
 
   void setName(String name) {
-    _activityData._name.setLocalValue(name);
+    _activityData.name.setLocalValue(name);
   }
 
   @override
   FirestoreChange getChanges() {
     FirestoreChange change = users.getChanges();
-    if (_activityData.currentValue.time != _initialValue.time) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "time": Timestamp.fromDate(_activityData._time.currentValue) }));
-    if (_activityData.currentValue.name != _initialValue.name) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "name": _activityData._time.currentValue }));
+    if (_activityData.currentValue.time != _initialValue.time) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "time": Timestamp.fromDate(_activityData.time.currentValue) }));
+    if (_activityData.currentValue.name != _initialValue.name) change = change.merge(FirestoreChange.single(_ref.activityDocument, { "name": _activityData.time.currentValue }));
     return change;
   }
 }
@@ -154,39 +160,69 @@ class ActivityDataFieldWriter<Q> extends IActivityDataWriter<Q, ActivityDataFiel
 class ActivityDataUserList extends IActivityData<List<UserDataSnapshot>> {
   final HashSet<UserReference> _localAddedUsers, _localRemovedUsers;
   final Map<UserReference, ActivityDataUser> _currentUsers;
+  final ActivityDataUser _user;
+
+  Map<UserReference, ActivityDataUser> get users => Map.unmodifiable(Map.from(_currentUsers)..[_user.ref] = _user);
 
   @override
-  List<UserDataSnapshot> get currentValue => _currentUsers.values.map((e) => e.currentValue).toList();
+  List<UserDataSnapshot> get currentValue => users.values.map((userData) => userData.currentValue).toList(growable: false);
 
   static ActivityDataUserList local(List<UserDataSnapshot> users) {
-    ActivityDataUserList list = ActivityDataUserList.empty();
-    users.forEach((user) => list.addUserLocally(user));
+    assert(users.map((e) => e.ref).contains(UserModel.instance.user));
+
+    UserDataSnapshot user = users.firstWhere((userSnapshot) => userSnapshot.ref == UserModel.instance.user);
+    Iterable<UserDataSnapshot> otherUsers = users.where((userSnapshot) => userSnapshot.ref != UserModel.instance.user);
+
+    ActivityDataUserList list = ActivityDataUserList._single(ActivityDataUser.local(user));
+    otherUsers.forEach((user) => list.addUserLocally(user));
     return list;
   }
 
-  static ActivityDataUserList global(List<UserDataSnapshot> users) {
-    ActivityDataUserList list = ActivityDataUserList.empty();
-    list.setGlobalUsers(users);
+  static ActivityDataUserList global(Iterable<UserDataSnapshot> users) {
+    assert(users.map((e) => e.ref).contains(UserModel.instance.user));
+
+    UserDataSnapshot user = users.firstWhere((userSnapshot) => userSnapshot.ref == UserModel.instance.user);
+    Iterable<UserDataSnapshot> otherUsers = users.where((userSnapshot) => userSnapshot.ref != UserModel.instance.user);
+
+    ActivityDataUserList list = ActivityDataUserList._single(ActivityDataUser.global(user));
+    list.setGlobalUsers(otherUsers);
     return list;
   }
 
-  ActivityDataUserList.empty() : _localAddedUsers = HashSet(), _localRemovedUsers = HashSet(), _currentUsers = Map();
+  ActivityDataUserList._single(this._user) : _localAddedUsers = HashSet(), _localRemovedUsers = HashSet(), _currentUsers = Map() {
+    assert(_user.ref == UserModel.instance.user);
+  }
 
-  void setGlobalUsers(List<UserDataSnapshot> usersData) {
-    Iterable<UserReference> users = usersData.map((e) => e.ref);
+  void setGlobalUsers(Iterable<UserDataSnapshot> usersData) {
+    UserDataSnapshot _user = usersData.singleWhere((userData) => userData.ref == UserModel.instance.user, orElse: () => null);
+    if (_user != null) _setGlobalUser(_user);
 
-    _localAddedUsers.removeAll(users);
-    _localRemovedUsers.removeAll(_localRemovedUsers.where((user) => !users.contains(user)));
+    Iterable<UserDataSnapshot> otherUsers = usersData.where((userSnapshot) => userSnapshot.ref != UserModel.instance.user);
+    _setGlobalOtherUsers(otherUsers);
 
-    usersData.where((userData) => !_localRemovedUsers.contains(userData.ref)).forEach((userData) {
+    notifyListeners();
+  }
+
+  void _setGlobalUser(UserDataSnapshot userSnapshot) {
+    assert(userSnapshot.ref == UserModel.instance.user);
+
+    _user.setGlobalData(userSnapshot);
+  }
+
+  void _setGlobalOtherUsers(Iterable<UserDataSnapshot> otherUsersData) {
+    Iterable<UserReference> otherUsers = otherUsersData.map((e) => e.ref);
+    assert(!otherUsers.contains(UserModel.instance.user));
+
+    _localAddedUsers.removeAll(otherUsers);
+    _localRemovedUsers.removeAll(_localRemovedUsers.where((user) => !otherUsers.contains(user)));
+
+    otherUsersData.where((userData) => !_localRemovedUsers.contains(userData.ref)).forEach((userData) {
       if (_currentUsers.containsKey(userData.ref)) {
         _currentUsers[userData.ref].setGlobalData(userData);
       } else {
         _currentUsers[userData.ref] = ActivityDataUser.global(userData)..linkParent(this);
       }
     });
-
-    notifyListeners();
   }
 
   void removeUserLocally(UserReference ref) {
@@ -221,7 +257,7 @@ class ActivityDataUserList extends IActivityData<List<UserDataSnapshot>> {
 //At the moment we don't support adding or removing users outside the API, nor modifying values of other users than the current user
 class ActivityDataUserListWriter extends IActivityDataWriter<List<UserDataSnapshot>, ActivityDataUserList> {
   ActivityDataUserListWriter(ActivityDataUserList activityValue, ActivityReference ref) : super(activityValue, ref) {
-    _currentUserWriter = ActivityDataUserWriter(activityValue._currentUsers[UserModel.instance.user], ref);
+    _currentUserWriter = ActivityDataUserWriter(activityValue._user, ref);
   }
 
  ActivityDataUserWriter _currentUserWriter;
