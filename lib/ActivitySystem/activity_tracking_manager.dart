@@ -52,13 +52,34 @@ class ActivityTrackingManager {
   Stream<ActivitySnapshot> getActivityChangeStream(ActivityReference ref) {
     assert(_trackedActivities.contains(ref));
 
-    return _snapshotControllers[ref].stream;
+    StreamSubscription subscription;
+
+    StreamController<ActivitySnapshot> controller;
+    controller = StreamController(
+      onListen: () {
+        assert(subscription == null);
+
+        subscription = _snapshotControllers[ref].stream.listen((event) {
+          controller.add(event);
+        });
+      },
+      onCancel: () {
+        subscription.cancel();
+        subscription = null;
+      }
+    );
+    _snapshotControllers[ref].done.then((value) {
+      controller.close();
+    });
+
+    controller.add(_activityHandlers[ref].currentSnapshot);
+
+    return controller.stream;
   }
 
-  Future<void> write(ActivityReference ref, ActivityWriteFunc writeFunc) {
+  void write(ActivityReference ref, ActivityWriteFunc writeFunc) {
     assert(_trackedActivities.contains(ref));
-
-    return _activityHandlers[ref].write(writeFunc);
+    _activityHandlers[ref].write(writeFunc);
   }
 
   Future<ActivityReference> createActivity(String name, DateTime time) async {
@@ -67,9 +88,12 @@ class ActivityTrackingManager {
     return handler.ref;
   }
 
-  Future<Stream<ActivitySnapshot>> joinActivity(ActivityReference ref) async {
+  Future<void> joinActivity(ActivityReference ref) async {
     _startTrackActivity(ref, await ActivityHandler.join(ref));
-    return getActivityChangeStream(ref);
+  }
+
+  bool trackingActivity(ActivityReference ref) {
+    return _trackedActivities.contains(ref);
   }
 
   void _stopListenAll() {
@@ -122,7 +146,7 @@ class ActivityTrackingManager {
   }
 
   void _startTrackActivity(ActivityReference ref, ActivityHandler handler) {
-    assert(!_trackedActivities.contains(ref));
+    assert(!trackingActivity(ref));
     _trackedActivities.add(ref);
 
     _activityHandlers[ref] = handler;
@@ -130,7 +154,8 @@ class ActivityTrackingManager {
     bool sendEvents = false;
 
     // ignore: close_sinks
-    StreamController<ActivitySnapshot> controller = StreamController.broadcast(
+    StreamController<ActivitySnapshot> controller;
+    controller = StreamController.broadcast(
       onListen: () {
         assert(sendEvents == false);
         sendEvents = true;
@@ -152,7 +177,7 @@ class ActivityTrackingManager {
   }
 
   void _stopTrackActivity(ActivityReference ref) {
-    assert(_trackedActivities.contains(ref));
+    assert(trackingActivity(ref));
     _trackedActivities.remove(ref);
 
     if (_listeningAll) _stopListen(ref);

@@ -297,7 +297,7 @@ class ActivityDataUser extends IActivityData<UserDataSnapshot> {
   );
 
   @override
-  UserDataSnapshot get currentValue => UserDataSnapshot(uid: ref.uid, username: _username, role: _role.currentValue, coming: _coming.currentValue);
+  UserDataSnapshot get currentValue => UserDataSnapshot(ref: ref, username: _username, role: _role.currentValue, coming: _coming.currentValue);
 
   void setGlobalData(UserDataSnapshot data) {
     _username = data.username;

@@ -41,8 +41,10 @@ class MainPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPreviewList(BuildContext context, List<ActivitySnapshot> previews) {
-    if (previews.length > 0) {
+  Widget _buildPreviewList(BuildContext context, List<ActivitySnapshot> activitySnapshots) {
+    if (activitySnapshots.length > 0) {
+      activitySnapshots.sort((a, b) => a.time.millisecondsSinceEpoch - b.time.millisecondsSinceEpoch);
+
       List<int> categoryDays = [
         0, 1, 6, 30, 365, 99999999
       ];
@@ -54,7 +56,7 @@ class MainPage extends StatelessWidget {
       List<Widget> tiles = List<Widget>();
       int category = 0;
       bool first = true;
-      for(ActivitySnapshot snapshot in previews) {
+      for(ActivitySnapshot snapshot in activitySnapshots) {
         DateTime today = DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
         int dayDiff = snapshot.time.difference(today).inDays;
 
@@ -167,8 +169,7 @@ class _ActivityCardState extends State<ActivityCard> {
   }
 
   void _transitionToViewPage() async {
-    throw UnimplementedError();
-    /*final transitionDuration = Duration(milliseconds: 300);
+    final transitionDuration = Duration(milliseconds: 300);
 
     EdgeInsets padding = (_cardKey.currentWidget as Card).margin;
 
@@ -201,11 +202,11 @@ class _ActivityCardState extends State<ActivityCard> {
 
     Navigator.of(context).push(
       PageRouteBuilder(
+        opaque: true,
         transitionDuration: transitionDuration,
-        pageBuilder: (context, animation, secondaryAnimation) => ActivityPage(),
-        settings: RouteSettings(arguments: activityReference),
+        pageBuilder: (context, animation, secondaryAnimation) => ActivityPage(widget.snapshot.ref),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          if (animation.value == 1) return ActivityPage();
+          if (animation.value == 1) return child;
 
           Animation easeInOutAnim = CurvedAnimation(
             parent: animation,
@@ -247,14 +248,14 @@ class _ActivityCardState extends State<ActivityCard> {
                 top: position.dy,
                 child: Opacity(
                   opacity: animation.value,
-                  child: ClipRRect(child: ActivityPage(), borderRadius: borderRadius,),
+                  child: ClipRRect(child: OverflowBox(child: child,), borderRadius: borderRadius),
                 ),
               )
             ],
           );
         }
       )
-    );*/
+    );
   }
 }
 

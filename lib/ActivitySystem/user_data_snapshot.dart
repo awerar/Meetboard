@@ -7,19 +7,17 @@ enum ActivityRole {
 }
 
 class UserDataSnapshot {
-  final String uid;
+  final UserReference ref;
   final String username;
   final bool coming;
   final ActivityRole role;
 
-  UserReference get ref => UserReference(uid);
-
-  UserDataSnapshot({@required this.uid, @required this.username, @required this.coming, @required this.role});
-  UserDataSnapshot.fromData(String uid, Map<String, dynamic> data) : this(uid: uid, username: data["username"], coming: data["coming"], role: data["role"] == "owner" ? ActivityRole.Owner : ActivityRole.Participant);
+  UserDataSnapshot({@required this.ref, @required this.username, @required this.coming, @required this.role});
+  UserDataSnapshot.fromData(UserReference ref, Map<String, dynamic> data) : this(ref: ref, username: data["username"], coming: data["coming"], role: data["role"] == "owner" ? ActivityRole.Owner : ActivityRole.Participant);
 
   static UserDataSnapshot get defaultCreateUser =>
       UserDataSnapshot(
-          uid: UserModel.instance.user.uid,
+          ref: UserReference(UserModel.instance.user.uid),
           username: UserModel.instance.username,
           coming: true,
           role: ActivityRole.Owner
@@ -27,7 +25,7 @@ class UserDataSnapshot {
 
   static UserDataSnapshot get defaultJoinUser =>
       UserDataSnapshot(
-          uid: UserModel.instance.user.uid,
+          ref: UserReference(UserModel.instance.user.uid),
           username: UserModel.instance.username,
           coming: true,
           role: ActivityRole.Participant
@@ -35,17 +33,17 @@ class UserDataSnapshot {
 
   static UserDataSnapshot get defaultUser =>
       UserDataSnapshot(
-          uid: UserModel.instance.user.uid,
+          ref: UserReference(UserModel.instance.user.uid),
           username: UserModel.instance.username,
           coming: true,
           role: ActivityRole.Participant
       );
 
   @override
-  int get hashCode => uid.hashCode;
+  int get hashCode => ref.hashCode;
 
   @override
   bool operator ==(other) {
-    return (other is UserDataSnapshot && this.uid == other.uid) || (other is String && this.uid == other);
+    return (other is UserDataSnapshot && this.ref == other.ref) || (other is UserReference && this.ref == other);
   }
 }

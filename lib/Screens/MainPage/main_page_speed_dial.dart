@@ -53,13 +53,12 @@ class _MainPageSpeedDialState extends State<MainPageSpeedDial> {
   }
 
   void _createActivity() async {
-    throw UnimplementedError();
-    /*await Navigator.of(context).push(
+    await Navigator.of(context).push(
         MaterialPageRoute(
             builder: (context) => EditActivityPage(),
-            settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity", handleNewActivity: (a) => null))
+            settings: RouteSettings(arguments: EditActivityPageSettings(appbarLabel: "Create a new activity"))
         )
-    );*/
+    );
   }
 
   void _joinActivity() async {

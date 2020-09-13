@@ -35,7 +35,7 @@ class ActivityHandler with ChangeNotifier {
   static Future<ActivityHandler> create(String name, DateTime time) async {
     HttpsCallableResult result = await CloudFunctions.instance.getHttpsCallable(functionName: "createActivity").call({
       "name": name,
-      "time": Timestamp.fromDate(time)
+      "time": time.millisecondsSinceEpoch
     });
     ActivityReference ref = ActivityReference(result.data as String);
 
@@ -51,10 +51,10 @@ class ActivityHandler with ChangeNotifier {
     return await ActivityHandler.fromExisting(ref, UserDataSnapshot.defaultJoinUser);
   }
 
-  Future<void> write(void Function(ActivityDataWriter writer) writeFunc) {
+  void write(void Function(ActivityDataWriter writer) writeFunc) {
     ActivityDataWriter writer = ActivityDataWriter(_activityData);
     writeFunc(writer);
-    return writer.getChanges().apply();
+    writer.getChanges().apply();
   }
 
   void startListen() {

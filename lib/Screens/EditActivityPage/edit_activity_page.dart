@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meetboard/ActivitySystem/activity_reference.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
+import 'package:meetboard/ActivitySystem/activity_tracking_manager.dart';
 import 'package:provider/provider.dart';
 
-/*class EditActivityPage extends StatefulWidget {
+class EditActivityPage extends StatefulWidget {
   @override
   _EditActivityPageState createState() => _EditActivityPageState();
 }
@@ -28,9 +33,9 @@ class _EditActivityPageState extends State<EditActivityPage> {
       _settings = args;
 
       if (_settings.baseActivity != null) {
-        _name = _settings.baseActivity.localName;
-        _date = _settings.baseActivity.localTime;
-        _time = TimeOfDay.fromDateTime(_settings.baseActivity.localTime);
+        _name = _settings.baseActivity.name;
+        _date = _settings.baseActivity.time;
+        _time = TimeOfDay.fromDateTime(_settings.baseActivity.time);
         _hasTriedSubmitting = true;
       }
     }
@@ -157,10 +162,14 @@ class _EditActivityPageState extends State<EditActivityPage> {
         _creating = true;
       });
       if (_settings.baseActivity == null) {
-        await _settings.handleNewActivity(await Provider.of<ActivityListModel>(context).createActivity(localName: _name, localTime: activityTime));
+        ActivityReference ref = (await ActivityTrackingManager.instance.createActivity(_name, activityTime));
+        _settings._editFinished.complete(ref);
       } else {
-        Activity newActivity = _settings.baseActivity.copyWith(localName: _name, localTime: activityTime);
-        await _settings.handleNewActivity(newActivity);
+        _settings.baseActivity.ref.write((writer) {
+          writer.setName(_name);
+          writer.setTime(activityTime);
+        });
+        _settings._editFinished.complete(_settings.baseActivity.ref);
       }
       Navigator.of(context).pop();
     } else _hasTriedSubmitting = true;
@@ -168,9 +177,12 @@ class _EditActivityPageState extends State<EditActivityPage> {
 }
 
 class EditActivityPageSettings{
-  final Activity baseActivity;
+  final ActivitySnapshot baseActivity;
   final String appbarLabel;
-  final Future<void> Function(Activity) handleNewActivity;
+  final Completer<ActivityReference> _editFinished = Completer();
+  final void Function(Future<ActivityReference> ref) handleOnEditFinished;
 
-  EditActivityPageSettings({@required this.appbarLabel, this.baseActivity, @required this.handleNewActivity});
-}*/
+  EditActivityPageSettings({@required this.appbarLabel, this.baseActivity, this.handleOnEditFinished}) {
+    if (handleOnEditFinished != null) handleOnEditFinished(_editFinished.future);
+  }
+}

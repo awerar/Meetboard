@@ -1,17 +1,20 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
+import 'package:meetboard/ActivitySystem/user_data_snapshot.dart';
+import 'package:meetboard/ActivitySystem/user_reference.dart';
 import 'package:meetboard/Models/settings_model.dart';
+import 'package:meetboard/Models/user_model.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../themes.dart';
 
-/*class PeopleTab extends StatelessWidget {
-  final Activity activity;
-  final UserActivityData user;
+class PeopleTab extends StatelessWidget {
+  final ActivitySnapshot activity;
 
-  PeopleTab(this.activity, this.user);
+  PeopleTab(this.activity);
 
   @override
   Widget build(BuildContext context) {
@@ -19,18 +22,18 @@ import '../../themes.dart';
       children: <Widget>[
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 25, vertical: 20),
-          child: Consumer<SettingsModel>(
-            builder: (BuildContext context, SettingsModel settings, Widget child) {
-              List<UserActivityData> peopleComing =  activity.localUsers.values.where((element) => _willCome(element, settings)).toList();
-              List<UserActivityData> peopleNotComing =  activity.localUsers.values.where((element) => !_willCome(element, settings)).toList();
+          child: Builder(
+            builder: (BuildContext context) {
+              List<UserDataSnapshot> peopleComing =  activity.users.values.where((user) => user.coming).toList();
+              List<UserDataSnapshot> peopleNotComing =  activity.users.values.where((user) => !user.coming).toList();
 
               return Column(
                   children: [
                     _buildSubtitle("Coming – ${peopleComing.length}"),
-                    UserColumn(peopleComing, user.uid, (u) => true),
+                    UserColumn(peopleComing),
                     SizedBox(height: 20,),
                     _buildSubtitle("Not Coming – ${peopleNotComing.length}"),
-                    UserColumn(peopleNotComing, user.uid, (u) => false),
+                    UserColumn(peopleNotComing),
                   ],
               );
             }
@@ -40,26 +43,18 @@ import '../../themes.dart';
     );
   }
 
-  bool _willCome(UserActivityData user, SettingsModel settings) {
-    return (user.uid != this.user.uid && user.coming) || (user.uid == this.user.uid && settings.getSavedValue<bool>("coming"));
-  }
-
   Widget _buildSubtitle(String text) {
     return Align(child: Builder(builder: (context) => Text(text, style: Theme.of(context).textTheme.subtitle2.copyWith(color: Colors.grey),)), alignment: Alignment.centerLeft,);
   }
 }
 
 class UserColumn extends StatefulWidget {
-  final Map<String, UserActivityData> users;
-  final HashSet<String> uids;
-  final String userUID;
-  final bool Function(UserActivityData) willCome;
+  final Map<UserReference, UserDataSnapshot> users;
 
   final Duration animationDuration = Duration(milliseconds: 900);
 
-  UserColumn(List<UserActivityData> users, this.userUID, this.willCome, {Key key}) :
-        uids = HashSet<String>.from(users.map((e) => e.uid)),
-        this.users = Map<String, UserActivityData>.fromIterable(users, key: (user) => user.uid),
+  UserColumn(List<UserDataSnapshot> users, {Key key}) :
+        this.users = Map.unmodifiable(Map<UserReference, UserDataSnapshot>.fromIterable(users, key: (user) => user.ref)),
         super(key: key);
 
   @override
@@ -67,65 +62,66 @@ class UserColumn extends StatefulWidget {
 }
 
 class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
-  List<UserActivityData> users;
+  final HashMap<UserReference, AnimationController> _controllers = HashMap();
+  final HashMap<UserReference, UserDataSnapshot> _currentUsers = HashMap();
 
-  HashMap<UserActivityData, AnimationController> controllers;
+  Iterable<UserDataSnapshot> get _sortedCurrentUsers => _currentUsers.values.toList()..sort(_compareUsers);
 
-  @override
-  void didUpdateWidget(UserColumn oldWidget) {
-    List<String> newUIDs = widget.uids.where((element) => !oldWidget.uids.contains(element)).toList();
-    List<String> oldUIDs = oldWidget.uids.where((element) => !widget.uids.contains(element)).toList();
-
-    oldUIDs.forEach((element) => _removeUser(oldWidget.users[element]));
-    newUIDs.forEach((element) => _addUser(widget.users[element]));
-
-    super.didUpdateWidget(oldWidget);
+  static int _compareUsers(UserDataSnapshot a, UserDataSnapshot b) {
+    if (a.ref == UserModel.instance.user) return -1;
+    else if (b.ref == UserModel.instance.user) return 1;
+    else return a.username.compareTo(b.username);
   }
 
   @override
   void initState() {
-    users = widget.users.values.toList();
-    sortUsers();
-
-    controllers = HashMap.fromIterable(users, key: (u) => u, value: (u) => AnimationController(value: 1, vsync: this, duration: widget.animationDuration));
+    _currentUsers.addEntries(widget.users.entries);
+    _controllers.addEntries(widget.users.entries.map((kv) => MapEntry(kv.key, AnimationController(vsync: this, duration: widget.animationDuration, value: 1))));
 
     super.initState();
   }
 
   @override
+  void didUpdateWidget(UserColumn oldWidget) {
+    List<UserReference> newUIDs = widget.users.keys.where((element) => !oldWidget.users.keys.contains(element)).toList();
+    List<UserReference> oldUIDs = oldWidget.users.keys.where((element) => !widget.users.keys.contains(element)).toList();
+
+    oldUIDs.forEach((user) => _animateOut(user));
+    newUIDs.forEach((user) => _animateIn(widget.users[user]));
+
+    widget.users.values.forEach((user) {
+      _currentUsers[user.ref] = user;
+    });
+
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
-      children: users.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, controllers[user]), animation: controllers[user],)).toList()
+      children: _sortedCurrentUsers.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, _controllers[user]), animation: _controllers[user],)).toList()
     );
   }
 
-  void sortUsers() {
-    users.sort((a, b) {
-      if (a.uid == widget.userUID) return -1;
-      else if (b.uid == widget.userUID) return 1;
-      else return a.username.compareTo(b.username);
-    });
-  }
+  Widget _buildElement(UserDataSnapshot user, BuildContext context, AnimationController controller) {
+    assert(controller != null);
 
-  Widget _buildElement(UserActivityData user, BuildContext context, AnimationController controller) {
     return SizeTransition(
       axisAlignment: -1,
       child: Builder(builder: (context) {
-        bool isUser = user.uid == widget.userUID;
-
         return ListTile(
           contentPadding: EdgeInsets.only(left: 0),
-          title: !isUser ? Text(user.username) : Builder(builder: (context) => Text("You (${user.username})")),
+          title: user.ref != UserModel.instance.user ? Text(user.username) : Builder(builder: (context) => Text("You (${user.username})")),
           subtitle: user.role == ActivityRole.Owner ? Text("Owner") : null,
           leading: CircleAvatar(
-            backgroundImage: NetworkImage('https://robohash.org/${user.uid}'),
+            backgroundImage: NetworkImage('https://robohash.org/${user.ref.uid}'),
             child: Align(
               child: Container(
                 width: 15,
                 height: 15,
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: widget.willCome(user) ? green : red,
+                    color: user.coming ? green : red,
                     border: Border.fromBorderSide(BorderSide(width: 1, color: Colors.white))
                 ),
                 padding: EdgeInsets.all(1),
@@ -135,7 +131,7 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
                     Expanded(
                       child: FittedBox(
                         fit: BoxFit.fill,
-                        child: Icon(widget.willCome(user) ? Icons.check : Icons.close, color: Colors.white,),
+                        child: Icon(user.coming ? Icons.check : Icons.close, color: Colors.white,),
                       ),
                     ),
                   ],
@@ -151,39 +147,34 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
     );
   }
 
-  void _addUser(UserActivityData user) {
-    if(users.contains(user)) {
-      controllers[user].dispose();
-    } else {
-      users.add(user);
-      sortUsers();
+  void _animateIn(UserDataSnapshot user) {
+    if(_controllers.containsKey(user.ref)) {
+      _controllers[user.ref].dispose();
     }
 
-    controllers[user] = AnimationController(
+    _controllers[user.ref] = AnimationController(
         vsync: this,
         duration: widget.animationDuration
     );
+    _controllers[user.ref].forward();
 
-    controllers[user].forward();
+    _currentUsers[user.ref] = user;
   }
 
-  void _removeUser(UserActivityData user) {
-    controllers[user].reverse().then((value) {
-      setState(() {
-        users.remove(user);
-        sortUsers();
+  void _animateOut(UserReference user) {
+    _controllers[user].reverse().then((value) {
+      _currentUsers.remove(user);
 
-        controllers[user].dispose();
-        controllers.remove(user);
-      });
+      _controllers[user].dispose();
+      _controllers.remove(user);
     });
   }
 
   @override
   void dispose() {
-    controllers.forEach((key, value) {
+    _controllers.forEach((key, value) {
       value.dispose();
     });
     super.dispose();
   }
-}*/
+}
