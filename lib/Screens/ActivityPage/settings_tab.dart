@@ -19,34 +19,33 @@ class SettingsTab extends StatefulWidget {
 class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStateMixin {
   AnimationController bannerController;
   GlobalKey<FormState> formKey = GlobalKey();
-  void Function() removeSettingsListener;
 
   TextEditingController nameController, dateController, timeController;
 
+  _ActivitySettingsData _settingsData;
+  bool _saving = false;
+
   @override
   void initState() {
-    SettingsModel settings = Provider.of<SettingsModel>(context, listen: false);
-    settings.addListener(_onSettingsChanged);
-    removeSettingsListener = () => settings.removeListener(_onSettingsChanged);
+    _settingsData = _ActivitySettingsData(widget.activity);
 
     bannerController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 250),
+      value: 0
     );
-    bannerController.value = settings.hasUnsavedChanges ? 1 : 0;
 
-    nameController = TextEditingController(text: settings.getValue("name"));
-    dateController = TextEditingController(text: _formatDate(settings.getValue("date")));
-    timeController = TextEditingController(text: settings.getValue<TimeOfDay>("time").format(context));
+    nameController = TextEditingController(text: widget.activity.name);
+    dateController = TextEditingController(text: _formatDate(widget.activity.time));
+    timeController = TextEditingController(text: TimeOfDay.fromDateTime(widget.activity.time).format(context));
 
     super.initState();
   }
 
   @override
-  void didChangeDependencies() {
-    SettingsModel settings = Provider.of<SettingsModel>(context, listen: false);
-
-    super.didChangeDependencies();
+  void didUpdateWidget(SettingsTab oldWidget) {
+    _settingsData.updateSnapshot(widget.activity);
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
@@ -56,7 +55,6 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
     timeController.dispose();
 
     bannerController.dispose();
-    removeSettingsListener();
     super.dispose();
   }
 
@@ -68,7 +66,7 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
       child: Flex(
         direction: Axis.vertical,
           children: <Widget>[
-            Consumer<SettingsModel>(builder: (context, settings, child) => settings.saving ? LinearProgressIndicator() : Container(),),
+            Builder(builder: (context) => _saving ? LinearProgressIndicator() : Container(),),
             AnimatedBuilder(
               animation: bannerController,
               child: _buildSaveBanner(),
@@ -121,19 +119,17 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
   }
 
   Widget _buildPersonalSettings() {
-    return Consumer<SettingsModel>(
-      builder: (context, settings, child) => Column(
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Text("Coming", style: Theme.of(context).textTheme.subtitle1,),
-              Switch(onChanged: (newValue) => settings.setValue("coming", newValue), value: settings.getValue("coming"),)
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Text("Coming", style: Theme.of(context).textTheme.subtitle1,),
+            Switch(onChanged: (newValue) => settings.setValue("coming", newValue), value: settings.getValue("coming"),)
+          ],
+        ),
+      ],
     );
   }
 
@@ -250,5 +246,43 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
 
     if(settings.hasUnsavedChanges) bannerController.forward();
     else bannerController.reverse();
+  }
+}
+
+class _ActivitySettingsData {
+  ActivitySnapshot _currentSnapshot;
+
+  String name;
+  TimeOfDay time;
+  DateTime date;
+
+  bool get nameChanged => name != _currentSnapshot.name;
+  bool get timeChanged => time != TimeOfDay.fromDateTime(_currentSnapshot.time);
+  bool get dateChanged => date != _parseDate(_currentSnapshot);
+
+  bool get hasChanges => nameChanged || timeChanged || dateChanged;
+
+  _ActivitySettingsData(ActivitySnapshot snapshot) {
+    _currentSnapshot = snapshot;
+
+    revert();
+  }
+
+  void updateSnapshot(ActivitySnapshot snapshot) {
+    if(!nameChanged) name = snapshot.name;
+    if(!timeChanged) time = TimeOfDay.fromDateTime(snapshot.time);
+    if(!dateChanged) date = _parseDate(snapshot);
+
+    _currentSnapshot = snapshot;
+  }
+
+  void revert() {
+    name = _currentSnapshot.name;
+    time = TimeOfDay.fromDateTime(_currentSnapshot.time);
+    date = _parseDate(_currentSnapshot);
+  }
+
+  DateTime _parseDate(ActivitySnapshot snapshot) {
+    return DateTime(snapshot.time.year, snapshot.time.month, snapshot.time.day);
   }
 }
