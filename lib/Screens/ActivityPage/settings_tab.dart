@@ -2,15 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:meetboard/ActivitySystem/activity_snapshot.dart';
 import 'package:meetboard/Models/settings_model.dart';
 import 'package:meetboard/Models/user_model.dart';
 import 'package:provider/provider.dart';
 
-/*class SettingsTab extends StatefulWidget {
-  final UserActivityData user;
-  final Activity activity;
+class SettingsTab extends StatefulWidget {
+  final ActivitySnapshot activity;
 
-  SettingsTab(this.user, this.activity);
+  SettingsTab(this.activity);
 
   @override
   _SettingsTabState createState() => _SettingsTabState();
@@ -26,8 +26,8 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
   @override
   void initState() {
     SettingsModel settings = Provider.of<SettingsModel>(context, listen: false);
-    settings.addListener(_settingsChanged);
-    removeSettingsListener = () => settings.removeListener(_settingsChanged);
+    settings.addListener(_onSettingsChanged);
+    removeSettingsListener = () => settings.removeListener(_onSettingsChanged);
 
     bannerController = AnimationController(
       vsync: this,
@@ -37,6 +37,7 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
 
     nameController = TextEditingController(text: settings.getValue("name"));
     dateController = TextEditingController(text: _formatDate(settings.getValue("date")));
+    timeController = TextEditingController(text: settings.getValue<TimeOfDay>("time").format(context));
 
     super.initState();
   }
@@ -44,8 +45,6 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
   @override
   void didChangeDependencies() {
     SettingsModel settings = Provider.of<SettingsModel>(context, listen: false);
-
-    timeController = TextEditingController(text: settings.getValue<TimeOfDay>("time").format(context));
 
     super.didChangeDependencies();
   }
@@ -243,7 +242,7 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
     nameController.text = settings.getValue("name");
   }
 
-  void _settingsChanged() {
+  void _onSettingsChanged() {
     SettingsModel settings = Provider.of<SettingsModel>(context, listen: false);
 
     dateController.text = _formatDate(settings.getValue<DateTime>("date"));
@@ -252,4 +251,4 @@ class _SettingsTabState extends State<SettingsTab> with SingleTickerProviderStat
     if(settings.hasUnsavedChanges) bannerController.forward();
     else bannerController.reverse();
   }
-}*/
+}
