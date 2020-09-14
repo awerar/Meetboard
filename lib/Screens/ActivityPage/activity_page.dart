@@ -70,7 +70,7 @@ class _ActivityPageContentsState extends State<_ActivityPageContents> with Singl
   void initState() {
     tabController = TabController(
       vsync: this,
-      length: 2
+      length: 3
     )..addListener(() => FocusScope.of(context).unfocus());
 
     super.initState();
@@ -102,7 +102,7 @@ class _ActivityPageContentsState extends State<_ActivityPageContents> with Singl
             tabs: <Widget>[
               Tab(icon: Icon(MdiIcons.information), text: "About",),
               Tab(icon: Icon(Icons.people), text: "People",),
-              //Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
+              Tab(icon: Icon(Icons.playlist_add_check), text: "Items",),
               //Tab(icon: Icon(Icons.settings), text: "Settings",),
             ],
           ),
@@ -112,7 +112,7 @@ class _ActivityPageContentsState extends State<_ActivityPageContents> with Singl
             children: <Widget>[
               AboutTab(widget.activity, tabController),
               PeopleTab(widget.activity),
-              //Container(),
+              Container(),
               //SettingsTab(_user, activity),
             ]
         )

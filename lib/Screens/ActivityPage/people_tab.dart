@@ -99,7 +99,7 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: _sortedCurrentUsers.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, _controllers[user]), animation: _controllers[user],)).toList()
+      children: _sortedCurrentUsers.map((user) => AnimatedBuilder(builder: (context, child) => _buildElement(user, context, _controllers[user.ref]), animation: _controllers[user.ref],)).toList()
     );
   }
 
@@ -163,10 +163,12 @@ class _UserColumnState extends State<UserColumn> with TickerProviderStateMixin {
 
   void _animateOut(UserReference user) {
     _controllers[user].reverse().then((value) {
-      _currentUsers.remove(user);
+      setState(() {
+        _currentUsers.remove(user);
 
-      _controllers[user].dispose();
-      _controllers.remove(user);
+        _controllers[user].dispose();
+        _controllers.remove(user);
+      });
     });
   }
 
